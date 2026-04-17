@@ -112,7 +112,8 @@
       return lc.distTraveled > CARD_W + 60;        // enough gap from entry
     }
 
-    function spawnOnLane(li) {
+    // preProgress: 0 = start at entry edge, 0.5 = start mid-path, etc.
+    function spawnOnLane(li, preProgress = 0) {
       const active = new Set(cards.map(c => c.src));
       const available = SRCS.filter(s => !active.has(s));
       if (!available.length) return false;
@@ -121,19 +122,24 @@
       const entry = edgePt(ee, ef);
       const exitPt = edgePt(xe, xf);
 
-      // Direction: from entry card-center to exit card-center
       const ex = entry.x + CARD_W / 2, ey = entry.y + CARD_H / 2;
       const xx = exitPt.x + CARD_W / 2, xy = exitPt.y + CARD_H / 2;
-      const len = Math.hypot(xx - ex, xy - ey);
+      const totalLen = Math.hypot(xx - ex, xy - ey);
       const speed = 0.6 + Math.random() * 0.25;
-      const vx = ((xx - ex) / len) * speed;
-      const vy = ((xy - ey) / len) * speed;
+      const vx = ((xx - ex) / totalLen) * speed;
+      const vy = ((xy - ey) / totalLen) * speed;
+
+      // Start position: interpolate along the full path by preProgress
+      const startX = entry.x + preProgress * (exitPt.x - entry.x);
+      const startY = entry.y + preProgress * (exitPt.y - entry.y);
 
       const src = available[Math.floor(Math.random() * available.length)];
 
       const div = document.createElement('div');
       div.className = 'card';
-      div.style.cssText = `left:0;top:0;opacity:0;transform:translate(${entry.x}px,${entry.y}px);transition:opacity 0.5s;`;
+      // Pre-placed cards appear instantly; fresh entries fade in
+      const transition = preProgress > 0 ? 'none' : 'opacity 0.5s';
+      div.style.cssText = `left:0;top:0;opacity:0;transform:translate(${startX}px,${startY}px);transition:${transition};`;
       const img = document.createElement('img');
       img.src = src;
       img.alt = '';
@@ -141,7 +147,7 @@
       document.body.appendChild(div);
       requestAnimationFrame(() => { div.style.opacity = '1'; });
 
-      const card = { el: div, x: entry.x, y: entry.y, vx, vy, src, distTraveled: 0 };
+      const card = { el: div, x: startX, y: startY, vx, vy, src, distTraveled: preProgress * totalLen };
       cards.push(card);
       laneLastCard[li] = card;
       return true;
@@ -163,24 +169,25 @@
       requestAnimationFrame(loop);
     }
 
-    // Staggered fill: one lane every ~450ms so cards are spread across screen
-    const shuffledLanes = LANE_DEFS.map((_, i) => i).sort(() => Math.random() - 0.5);
-    shuffledLanes.forEach((li, i) => {
-      setTimeout(() => spawnOnLane(li), i * 450);
+    // Initial fill: place one card per lane at a random position along its path,
+    // simulating mid-traffic from the very first frame.
+    LANE_DEFS.forEach((_, li) => {
+      const preProgress = 0.05 + Math.random() * 0.80; // spread across the path
+      spawnOnLane(li, preProgress);
     });
 
-    // Ongoing: refill empty lanes
+    // Ongoing: refill lanes as cards exit
     function schedule() {
       const order = LANE_DEFS.map((_, i) => i).sort(() => Math.random() - 0.5);
       for (const li of order) {
         if (canSpawnOnLane(li)) {
-          spawnOnLane(li);
+          spawnOnLane(li); // always enter from the edge
           break;
         }
       }
       setTimeout(schedule, 280 + Math.random() * 250);
     }
-    setTimeout(schedule, shuffledLanes.length * 450 + 400);
+    setTimeout(schedule, 500);
 
     requestAnimationFrame(loop);
   </script>
