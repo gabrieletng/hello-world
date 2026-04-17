@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A Story of Love and Death</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    #center-text {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 5rem);
+      color: #000;
+      text-align: center;
+      line-height: 1.0;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .card {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 240px;
+      height: 180px;
+      border-radius: 3px;
+      overflow: hidden;
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="center-text">THIS IS A STORY OF<br>LOVE AND DEATH</div>
+
+  <script>
+    const SRCS = [
+      "16884654318215563291720051695677.jpg",
+      "1711998625011364017473959676309.jpg",
+      "17165775964166598959802942392100.jpg",
+      "@camdenthrasher.png",
+      "@davidemessora.png",
+      "@retroracing_culture.jpg",
+      "custom-harley-xr1200-16.jpg.webp",
+      "custom-harley-xr1200-19.jpg.webp",
+      "custom-harley-xr1200-2.jpg.webp",
+      "custom-harley-xr1200.jpg",
+      "kemalSanli.jpg",
+      "mark busch.jpg"
+    ];
+
+    const CARD_W = 240, CARD_H = 180;
+    let W = window.innerWidth, H = window.innerHeight;
+    window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; });
+
+    // 10 lanes defined as [entryEdge, entryFrac, exitEdge, exitFrac]
+    // Edges: 0=top, 1=right, 2=bottom, 3=left  |  frac = 0..1 along that edge
+    // Each lane is a slightly diagonal path that fully crosses the screen.
+    // Direction variety: some go top→bottom, some left→right, some diagonal.
+    const LANE_DEFS = [
+      [0, 0.15, 2, 0.28],   // top→bottom, slight right drift
+      [0, 0.82, 2, 0.62],   // top→bottom, slight left drift
+      [3, 0.14, 1, 0.30],   // left→right, slight down drift
+      [3, 0.78, 1, 0.62],   // left→right, slight up drift
+      [1, 0.16, 3, 0.32],   // right→left, slight down drift
+      [1, 0.72, 3, 0.58],   // right→left, slight up drift
+      [2, 0.18, 0, 0.32],   // bottom→top, slight right drift
+      [2, 0.78, 0, 0.62],   // bottom→top, slight left drift
+      [0, 0.50, 1, 0.78],   // top-center → right-bottom (diagonal)
+      [3, 0.46, 2, 0.72],   // left-center → bottom-right (diagonal)
+    ];
+
+    const laneLastCard = new Array(LANE_DEFS.length).fill(null);
+    let cards = [];
+
+    // Returns card top-left start position for a given edge+fraction
+    function edgePt(edge, frac) {
+      const cx = frac * W, cy = frac * H;
+      switch (edge) {
+        case 0: return { x: cx - CARD_W / 2, y: -CARD_H };
+        case 1: return { x: W,               y: cy - CARD_H / 2 };
+        case 2: return { x: cx - CARD_W / 2, y: H };
+        case 3: return { x: -CARD_W,          y: cy - CARD_H / 2 };
+      }
+    }
+
+    function canSpawnOnLane(li) {
+      const lc = laneLastCard[li];
+      if (!lc) return true;
+      if (!cards.includes(lc)) return true;        // previous card has exited
+      return lc.distTraveled > CARD_W + 60;        // enough gap from entry
+    }
+
+    function spawnOnLane(li) {
+      const active = new Set(cards.map(c => c.src));
+      const available = SRCS.filter(s => !active.has(s));
+      if (!available.length) return false;
+
+      const [ee, ef, xe, xf] = LANE_DEFS[li];
+      const entry = edgePt(ee, ef);
+      const exitPt = edgePt(xe, xf);
+
+      // Direction: from entry card-center to exit card-center
+      const ex = entry.x + CARD_W / 2, ey = entry.y + CARD_H / 2;
+      const xx = exitPt.x + CARD_W / 2, xy = exitPt.y + CARD_H / 2;
+      const len = Math.hypot(xx - ex, xy - ey);
+      const speed = 0.6 + Math.random() * 0.25;
+      const vx = ((xx - ex) / len) * speed;
+      const vy = ((xy - ey) / len) * speed;
+
+      const src = available[Math.floor(Math.random() * available.length)];
+
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.style.cssText = `left:0;top:0;opacity:0;transform:translate(${entry.x}px,${entry.y}px);transition:opacity 0.5s;`;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = '';
+      div.appendChild(img);
+      document.body.appendChild(div);
+      requestAnimationFrame(() => { div.style.opacity = '1'; });
+
+      const card = { el: div, x: entry.x, y: entry.y, vx, vy, src, distTraveled: 0 };
+      cards.push(card);
+      laneLastCard[li] = card;
+      return true;
+    }
+
+    function loop() {
+      for (let i = cards.length - 1; i >= 0; i--) {
+        const c = cards[i];
+        c.x += c.vx;
+        c.y += c.vy;
+        c.distTraveled += Math.hypot(c.vx, c.vy);
+        c.el.style.transform = `translate(${c.x}px,${c.y}px)`;
+
+        if (c.x < -CARD_W - 20 || c.x > W + 20 || c.y < -CARD_H - 20 || c.y > H + 20) {
+          c.el.remove();
+          cards.splice(i, 1);
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+
+    // Staggered fill: one lane every ~450ms so cards are spread across screen
+    const shuffledLanes = LANE_DEFS.map((_, i) => i).sort(() => Math.random() - 0.5);
+    shuffledLanes.forEach((li, i) => {
+      setTimeout(() => spawnOnLane(li), i * 450);
+    });
+
+    // Ongoing: refill empty lanes
+    function schedule() {
+      const order = LANE_DEFS.map((_, i) => i).sort(() => Math.random() - 0.5);
+      for (const li of order) {
+        if (canSpawnOnLane(li)) {
+          spawnOnLane(li);
+          break;
+        }
+      }
+      setTimeout(schedule, 280 + Math.random() * 250);
+    }
+    setTimeout(schedule, shuffledLanes.length * 450 + 400);
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
