@@ -365,40 +365,42 @@
       color: #fff;
     }
 
-    @keyframes hintGlow {
-      0%, 100% {
-        box-shadow: 0 6px 24px rgba(0,0,0,0.5),
-                    0 0 0 0 rgba(255,255,255,0.0),
-                    0 0 24px 2px rgba(255,255,255,0.12);
-        border-color: rgba(255,255,255,0.25);
-      }
-      50% {
-        box-shadow: 0 6px 28px rgba(0,0,0,0.55),
-                    0 0 0 6px rgba(255,255,255,0.04),
-                    0 0 48px 8px rgba(255,255,255,0.35);
-        border-color: rgba(255,255,255,0.55);
-      }
+    @keyframes footerGlow {
+      0%, 100% { opacity: 0.55; }
+      50%      { opacity: 1; }
+    }
+    #hint-glow {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 260px;
+      pointer-events: none;
+      background: radial-gradient(ellipse 60% 100% at 50% 100%,
+                    rgba(255,255,255,0.45) 0%,
+                    rgba(255,255,255,0.22) 25%,
+                    rgba(255,255,255,0.08) 55%,
+                    rgba(255,255,255,0) 100%);
+      animation: footerGlow 2.4s ease-in-out infinite;
+      transition: opacity 1s;
+      z-index: 5;
     }
     #hint {
       position: fixed;
-      bottom: 32px; left: 50%;
+      bottom: 40px; left: 50%;
       transform: translateX(-50%);
-      color: #fff;
+      color: #111;
       font-size: 20px;
       letter-spacing: 0.16em;
       text-transform: uppercase;
-      padding: 12px 22px;
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(255,255,255,0.25);
+      padding: 12px 24px;
+      background: rgba(255,255,255,0.95);
       border-radius: 999px;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
       white-space: nowrap;
       pointer-events: none;
       transition: opacity 1s;
-      animation: hintGlow 2.2s ease-in-out infinite;
+      z-index: 6;
     }
-    #hint.hidden { opacity: 0; }
+    #hint.hidden, #hint-glow.hidden { opacity: 0; animation: none; }
   </style>
 </head>
 <body>
@@ -443,6 +445,7 @@
     </div>
   </div>
 
+  <div id="hint-glow"></div>
   <div id="hint">scroll to zoom &nbsp;·&nbsp; drag to pan</div>
 
   <script type="module">
@@ -1053,8 +1056,10 @@
 
     // ── Hint ──────────────────────────────────────────────────────
     const hint = document.getElementById('hint');
-    let hintTimer = setTimeout(() => hint.classList.add('hidden'), 4000);
-    function dismissHint() { clearTimeout(hintTimer); hint.classList.add('hidden'); }
+    const hintGlow = document.getElementById('hint-glow');
+    function hideHint() { hint.classList.add('hidden'); hintGlow.classList.add('hidden'); }
+    let hintTimer = setTimeout(hideHint, 4000);
+    function dismissHint() { clearTimeout(hintTimer); hideHint(); }
   </script>
 </body>
 </html>
