@@ -567,6 +567,10 @@
       catch (err) { console.error('Sign-out failed:', err); }
     });
 
+    // Read ?image= once on load so we can auto-open the lightbox after grids render.
+    // Matches grid.html so a shared profile URL lands directly on the picture + notes.
+    const autoOpenImageFile = new URLSearchParams(window.location.search).get('image');
+
     // ── Auth state drives the whole page ──
     setupAuthStateListener(async user => {
       authResolved = true;
@@ -610,6 +614,28 @@
         });
       } else {
         showError('noted-error', notedRes.reason);
+      }
+
+      if (autoOpenImageFile) {
+        // Prefer Noted so deep-links from share land in the section the notes live in;
+        // fall back to Liked, then manifest (image may be neither liked nor noted yet).
+        const noted = sections.noted || [];
+        const liked = sections.liked || [];
+        const notedIdx = noted.findIndex(e => e.file === autoOpenImageFile);
+        if (notedIdx >= 0) {
+          openLightbox('noted', notedIdx);
+        } else {
+          const likedIdx = liked.findIndex(e => e.file === autoOpenImageFile);
+          if (likedIdx >= 0) {
+            openLightbox('liked', likedIdx);
+          } else {
+            const entry = manifestMap.get(autoOpenImageFile);
+            if (entry) {
+              sections.__deep = [entry];
+              openLightbox('__deep', 0);
+            }
+          }
+        }
       }
     });
 
