@@ -578,14 +578,16 @@
           item.className = 'item';
           item.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;
 
-          // Native lazy-loading: browser decides when to fetch based on the
-          // visible viewport (accounts for CSS transforms and works reliably
-          // on mobile where custom touchmove-driven reveal was unreliable).
-          // Grid uses the small thumb; lightbox loads full-res separately.
+          // Eager-fetch thumbs. Tried loading="lazy" and a custom
+          // touchmove-driven reveal; both left in-view items blank on mobile
+          // (Safari's lazy heuristic skips small-visual items when zoomed out,
+          // and touchmove reveal misses the final pan state). The whole thumb
+          // set is ~27 MB across 909 files — the browser's concurrency limit
+          // spreads it out, and decode only happens for items actually on
+          // screen.
           const img = document.createElement('img');
           img.draggable = false;
           img.decoding = 'async';
-          img.loading = 'lazy';
           img.src = `../${p.entry.file.replace('images/', 'images/thumbs/')}`;
           item.appendChild(img);
 
