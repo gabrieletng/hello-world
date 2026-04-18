@@ -93,7 +93,6 @@
     }
 
     function buildTrack(el, srcs) {
-      // Two copies of the subset for seamless loop.
       srcs.concat(srcs).forEach(src => {
         const img = document.createElement('img');
         img.src = src;
@@ -109,79 +108,66 @@
     buildTrack(trackTop, pool.slice(0, 6));
     buildTrack(trackBot, pool.slice(6));
 
-    // ─── Motion model ───────────────────────────────────────────────────────
-    // topOff and botOff are ever-increasing accumulators (px).
+    // ─── Motion model ────────────────────────────────────────────────────────
     //
-    //   top transform  = -(topOff % topHW)         → drifts left
-    //   bot transform  =  (botOff % botHW) - botHW → drifts right
+    // topOff / botOff are ever-increasing accumulators (px).
     //
-    // While dragging, `drag` (the live cursor Δx) is added on top as a
-    // visual offset without touching the accumulators:
+    //   top transform  = -(topOff % topHW)         → drifts LEFT  at topSpeed
+    //   bot transform  =  (botOff % botHW) - botHW → drifts RIGHT at botSpeed
     //
-    //   top effective  = topOff - drag    (drag right → top shifts right)
-    //   bot effective  = botOff + drag    (drag right → bot shifts left)
+    // During drag, the accumulators freeze. `drag` (cursor Δx) is applied to
+    // both in the same direction so their relative movement is reciprocal:
     //
-    // On release, drag is baked into the accumulators and a momentum value
-    // is seeded from the fling velocity, decaying back to zero (≈ 0.7s half-life).
-    // ────────────────────────────────────────────────────────────────────────
+    //   top effective  = topOff - drag  →  drag right  = top shifts right
+    //   bot effective  = botOff - drag  →  drag right  = bot shifts left
+    //
+    // On release: drag is baked into the accumulators (no position jump),
+    // auto-scroll resumes immediately at the same idle speed.
+    //
+    // Speeds are derived from the track half-width and the original CSS
+    // durations so the idle pace matches exactly what it was before.
+    // ─────────────────────────────────────────────────────────────────────────
 
-    const TOP_SPEED  = 95;   // px/s — top drifts left
-    const BOT_SPEED  = 115;  // px/s — bot drifts right
-    const MOM_HALF   = 0.7;  // seconds for momentum to halve
+    const TOP_DURATION = 95;   // seconds — matches the old CSS animation
+    const BOT_DURATION = 115;
 
-    let topHW = 1, botHW = 1;   // half-widths, set after images load
-    let topOff = 0, botOff = 0; // accumulators
-
-    let momentum = 0; // extra px/s; positive = rightward push
+    let topHW = 1, botHW = 1;
+    let topSpeed = 0, botSpeed = 0;
+    let topOff = 0, botOff = 0;
 
     // Drag state
     let dragging   = false;
-    let drag       = 0;      // live cursor Δx from drag start
+    let drag       = 0;      // live Δx from drag-start
     let dragStartX = 0;
-    let dragPrevX  = 0;
-    let dragPrevT  = 0;
-    let dragVel    = 0;      // velocity at pointer-up (px/s)
 
     function applyTransform() {
       const topEff = topOff - drag;
-      const botEff = botOff + drag;
+      const botEff = botOff - drag;
       const t = -(((topEff % topHW) + topHW) % topHW);
       const b =  (((botEff % botHW) + botHW) % botHW) - botHW;
       trackTop.style.transform = `translateX(${t}px)`;
       trackBot.style.transform = `translateX(${b}px)`;
     }
 
-    // ─── Pointer handlers ────────────────────────────────────────────────────
+    // ─── Pointer handlers ─────────────────────────────────────────────────────
     function pDown(x) {
       dragging   = true;
       dragStartX = x;
-      dragPrevX  = x;
-      dragPrevT  = performance.now();
       drag       = 0;
-      dragVel    = 0;
       document.body.classList.add('dragging');
     }
 
     function pMove(x) {
       if (!dragging) return;
-      const now = performance.now();
-      const dt  = (now - dragPrevT) / 1000;
-      if (dt > 0.004) {
-        dragVel   = (x - dragPrevX) / dt;
-        dragPrevX = x;
-        dragPrevT = now;
-      }
       drag = x - dragStartX;
     }
 
     function pUp() {
       if (!dragging) return;
       dragging = false;
-      // Bake drag into accumulators so there's no position jump.
+      // Bake current drag into accumulators so position doesn't jump.
       topOff -= drag;
-      botOff += drag;
-      // Seed momentum from fling velocity.
-      momentum = dragVel;
+      botOff -= drag;
       drag = 0;
       document.body.classList.remove('dragging');
     }
@@ -193,32 +179,26 @@
 
     document.addEventListener('touchstart', e => pDown(e.touches[0].clientX),         { passive: true });
     document.addEventListener('touchmove',  e => pMove(e.touches[0].clientX),         { passive: true });
-    document.addEventListener('touchend',   e => pUp());
+    document.addEventListener('touchend',   ()  => pUp());
 
-    // ─── Animation loop ──────────────────────────────────────────────────────
+    // ─── Animation loop ───────────────────────────────────────────────────────
     let lastT = 0;
 
     function frame(now) {
       const dt = Math.min(0.05, (now - lastT) / 1000);
       lastT = now;
 
-      // Decay momentum toward zero.
-      if (momentum !== 0) {
-        momentum *= Math.pow(0.5, dt / MOM_HALF);
-        if (Math.abs(momentum) < 0.5) momentum = 0;
+      // Accumulators only advance when not grabbing.
+      if (!dragging) {
+        topOff += topSpeed * dt;
+        botOff += botSpeed * dt;
       }
-
-      // Auto-scroll. Momentum (rightward) subtracts from the leftward top
-      // speed and from the rightward bot speed — both bands slow and
-      // reverse together, then settle back to idle.
-      topOff += (TOP_SPEED - momentum) * dt;
-      botOff += (BOT_SPEED - momentum) * dt;
 
       applyTransform();
       requestAnimationFrame(frame);
     }
 
-    // ─── Init ────────────────────────────────────────────────────────────────
+    // ─── Init ─────────────────────────────────────────────────────────────────
     const allImgs = [...document.querySelectorAll('.track img')];
     Promise.all(allImgs.map(img =>
       img.decode().catch(() => new Promise(res => {
@@ -226,13 +206,15 @@
         img.addEventListener('error', res, { once: true });
       }))
     )).then(() => {
-      topHW = trackTop.scrollWidth / 2;
-      botHW = trackBot.scrollWidth / 2;
+      topHW    = trackTop.scrollWidth / 2;
+      botHW    = trackBot.scrollWidth / 2;
+      // Derive px/s from track width ÷ duration → same visual pace as the CSS was.
+      topSpeed = topHW / TOP_DURATION;
+      botSpeed = botHW / BOT_DURATION;
       document.body.classList.add('ready');
       requestAnimationFrame(t => { lastT = t; frame(t); });
     });
 
-    // Safety net in case a broken image stalls decoding.
     setTimeout(() => document.body.classList.add('ready'), 4000);
   </script>
 </body>
