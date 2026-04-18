@@ -405,6 +405,40 @@
       z-index: 6;
     }
     #hint.hidden, #hint-glow.hidden { opacity: 0; animation: none; }
+
+    #nav-pills {
+      position: fixed;
+      top: 24px; right: 24px;
+      display: flex;
+      gap: 8px;
+      z-index: 6;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s;
+    }
+    #nav-pills.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .nav-pill {
+      color: #fff;
+      font-size: 16px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .nav-pill:hover {
+      background: rgba(20,20,20,0.9);
+      border-color: rgba(255,255,255,0.45);
+    }
   </style>
 </head>
 <body>
@@ -451,6 +485,11 @@
 
   <div id="hint-glow"></div>
   <div id="hint">scroll to zoom &nbsp;·&nbsp; drag to pan</div>
+
+  <div id="nav-pills">
+    <div class="nav-pill" id="nav-home">Home</div>
+    <div class="nav-pill" id="nav-profile">Sign In</div>
+  </div>
 
   <script type="module">
     import { signInGoogle, signOutUser, getCurrentUser, setupAuthStateListener, addLike, removeLike, isImageLiked, addNote, getNotes, deleteNote } from '../js/firebase.js';
@@ -520,7 +559,11 @@
       updateNotesInputSection();
     }
 
-    setupAuthStateListener(user => updateAuthUI(user));
+    function updateNavAuth(user) {
+      navProfile.textContent = user ? (user.displayName || user.email || 'Profile') : 'Sign In';
+    }
+
+    setupAuthStateListener(user => { updateAuthUI(user); updateNavAuth(user); });
 
     authSignInBtn.addEventListener('click', async e => {
       e.stopPropagation();
@@ -1064,6 +1107,37 @@
     function hideHint() { hint.classList.add('hidden'); hintGlow.classList.add('hidden'); }
     let hintTimer = setTimeout(hideHint, 4000);
     function dismissHint() { clearTimeout(hintTimer); hideHint(); }
+
+    // ── Nav pills (home + profile) ───────────────────────────────
+    const navPills = document.getElementById('nav-pills');
+    const navHome = document.getElementById('nav-home');
+    const navProfile = document.getElementById('nav-profile');
+
+    let navTimer = null;
+    function showNav() {
+      navPills.classList.add('visible');
+      clearTimeout(navTimer);
+      navTimer = setTimeout(() => navPills.classList.remove('visible'), 3000);
+    }
+
+    window.addEventListener('mousemove', showNav);
+    window.addEventListener('wheel', showNav, { passive: true });
+    window.addEventListener('mousedown', showNav);
+
+    navHome.addEventListener('click', e => {
+      e.stopPropagation();
+      window.location.href = '../';
+    });
+
+    navProfile.addEventListener('click', async e => {
+      e.stopPropagation();
+      const user = getCurrentUser();
+      if (user) {
+        window.location.href = '../profile/';
+      } else {
+        try { await signInGoogle(); } catch (err) { console.error(err); }
+      }
+    });
   </script>
 </body>
 </html>
