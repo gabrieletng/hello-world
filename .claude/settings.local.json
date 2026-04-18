@@ -43,7 +43,13 @@
       "mcp__github__list_pull_requests",
       "mcp__Claude_in_Chrome__read_page",
       "Bash(open -a \"Google Chrome\" \"https://gabrieletng.github.io/hello-world/explore/grid.html\")",
-      "Bash(open -a \"Google Chrome\" \"https://console.cloud.google.com/apis/credentials?project=hello-world-3e616\")"
+      "Bash(open -a \"Google Chrome\" \"https://console.cloud.google.com/apis/credentials?project=hello-world-3e616\")",
+      "Bash(python3 scripts/install_clarity.py)",
+      "Bash(python3 scripts/install_posthog.py)",
+      "Bash(xargs sed *)",
+      "Bash(git fetch *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)"
     ]
   }
 }

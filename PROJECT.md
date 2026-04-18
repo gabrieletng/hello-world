@@ -45,7 +45,7 @@ A photography collection website. The homepage is a marquee tease with a "doorwa
 ```
 
 Notes on what's **not** here:
-- No `explore/carousel.html` — dropped. The grid + lightbox + per-item share pages cover that need.
+- No `explore/carousel.html` page — carousel shipped instead as a **fullscreen slideshow mode inside the lightbox** on grid + profile (see below).
 - No `landing/` folder — the multi-landing-page idea was dropped in favour of a single homepage that acts as a doorway.
 - No `js/marquee.js` consumers beyond `index.html`.
 
@@ -58,7 +58,7 @@ Notes on what's **not** here:
 - Centre text: "THIS IS A STORY OF / LOVE AND DEATH" (Bebas Neue)
 - Footer strip: colophon + "THE COLLECTION ↓" portal link
 - Clicking the portal triggers a slide-up transition: the whole homepage translates off-screen, revealing the dark collection background beneath, then navigates to `explore/grid.html`
-- OG/Twitter metadata points at `images/og-homepage.jpg`
+- OG/Twitter metadata points at the **absolute** URL `https://gabrieletng.github.io/hello-world/images/og-homepage.jpg` — relative paths failed to unfurl on WhatsApp / iMessage / Slack
 
 ### Grid (`explore/grid.html`)
 - Zoomable/pannable infinite canvas — digital mood board on `#1E1E1E`
@@ -71,7 +71,16 @@ Notes on what's **not** here:
 - Nav pills (top): HOME + SIGN IN / username → profile — fade away after an initial 10s dwell, return on pan/zoom or hover
 - Like heart appears on hover; full red when liked
 - Click opens a lightbox: full-screen image, like, share, notes, prev/next arrows
+- Lightbox uses `align-items: safe center` so tall images remain scrollable (flex-center + overflow clips the top otherwise)
 - Lightbox auto-opens when the URL carries `?image=<file>`
+
+### Carousel mode (inside the lightbox)
+- Triggered by the fullscreen button at the bottom-right of the lightbox; also exits on Esc
+- Media fills the viewport; meta/notes/auth chrome hides; a play/pause button + progress bar appears at bottom-center
+- While playing: images auto-advance every N seconds (speed cycler button lets the user step through 3s / 5s / 10s); videos play to their natural end before advancing
+- Keyboard: Space toggles play/pause, Esc exits carousel (then lightbox on a second press)
+- Idle behaviour: after inactivity the controls (close, prev/next, progress, fullscreen, play/pause) fade out for a screensaver feel; tap the dead centre to hide UI on touch
+- Shared implementation between `explore/grid.html` and `profile/index.html` — any lightbox UX fix on grid gets mirrored to profile
 
 ### Profile (`profile/index.html`)
 - Requires Google sign-in
@@ -118,7 +127,7 @@ All three snippets are embedded directly in the `<head>` of every HTML page (hom
 - WebP (stills), MP4/GIF (motion) — `type` field in manifest distinguishes them
 - Max 1600 px longest side, quality 82
 - Filenames: lowercase, hyphen-separated, no spaces; `.webp` / `.mp4` / `.gif`
-- Currently ~900 files, ~260 MB
+- Currently ~897 files, ~259 MB (manifest has 847 entries — the delta is the `og-homepage.jpg`, thumbs, and a handful of files excluded by the manifest script)
 
 ### Source folder
 - Raw images live in `~/Claude/ethos/` — outside the repo, never committed
@@ -156,7 +165,7 @@ Moved images, extracted `js/marquee.js`, created `manifest.json`, added `scripts
 - ~900 images compressed
 - `sync.sh` pipeline (sync ethos → manifest → share pages → commit → push)
 - Grid: zoomable/pannable canvas, 600-px thumbnails, viewport culling, kinetic inertia, video/gif support, lightbox with prev/next
-- **Carousel: dropped** (grid + lightbox superseded it)
+- **Carousel**: shipped as a fullscreen slideshow mode inside the lightbox (not a separate page) — play/pause, speed cycler, progress bar, idle auto-hide, keyboard controls
 
 ### Phase 3 — Social ✅
 Firebase auth, likes, notes (Instagram-style UI), profile page with liked + noted grids, per-item share pages with real OG previews, lightbox wired to all of it.
