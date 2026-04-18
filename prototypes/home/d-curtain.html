@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Option D — Scroll curtain</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; background: #fff; }
+
+    .marquee {
+      position: fixed;
+      left: 0;
+      width: 100vw;
+      height: 34vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      cursor: grab;
+    }
+    .marquee.top    { top: 0; }
+    .marquee.bottom { bottom: 0; }
+    body.dragging, body.dragging .marquee { cursor: grabbing; }
+
+    .track {
+      display: flex;
+      gap: 2.2vw;
+      padding: 0 1.1vw;
+      flex-shrink: 0;
+      will-change: transform;
+    }
+    .track img {
+      height: 32vh; width: auto; display: block; flex-shrink: 0;
+      user-select: none; -webkit-user-drag: none; pointer-events: none;
+    }
+
+    #center-text {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 5rem);
+      color: #000;
+      text-align: center;
+      line-height: 1.0;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    body { opacity: 0; transition: opacity 1.6s ease; }
+    body.ready { opacity: 1; }
+
+    /* ─── Option D: scroll-to-enter curtain ───────────────── */
+    #curtain {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 0;
+      background: #0d0d0d;
+      z-index: 25;
+      pointer-events: none;
+      will-change: height;
+    }
+
+    #hint {
+      position: fixed;
+      bottom: 22px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.34em;
+      color: rgba(0,0,0,0.5);
+      text-align: center;
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 999px;
+      cursor: pointer;
+      user-select: none;
+      opacity: 0;
+      transition: opacity 0.9s, color 0.2s, background 0.2s;
+    }
+    body.ready #hint { opacity: 1; transition-delay: 1.2s; }
+    #hint:hover { color: rgba(0,0,0,0.9); background: rgba(255,255,255,0.95); }
+    #hint .chev {
+      display: inline-block;
+      margin-left: 10px;
+      animation: bob 1.8s ease-in-out infinite;
+    }
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(3px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="marquee top"><div class="track" id="track-top"></div></div>
+  <div class="marquee bottom"><div class="track" id="track-bottom"></div></div>
+  <div id="center-text">THIS IS A STORY OF<br>LOVE AND DEATH</div>
+
+  <div id="hint">SCROLL DOWN FOR THE COLLECTION<span class="chev">&darr;</span></div>
+  <div id="curtain"></div>
+
+  <script src="../../js/marquee.js"></script>
+  <script>
+    initMarquee({
+      images: [
+        "../../images/16884654318215563291720051695677.webp",
+        "../../images/1711998625011364017473959676309.webp",
+        "../../images/17165775964166598959802942392100.webp",
+        "../../images/camdenthrasher.webp",
+        "../../images/davidemessora.webp",
+        "../../images/retroracing_culture.webp",
+        "../../images/custom-harley-xr1200-16.webp",
+        "../../images/custom-harley-xr1200-19.webp",
+        "../../images/custom-harley-xr1200-2.webp",
+        "../../images/custom-harley-xr1200.webp",
+        "../../images/kemal-sanli.webp",
+        "../../images/mark-busch.webp",
+      ]
+    });
+
+    // ── Curtain progression ─────────────────────────────
+    const curtain = document.getElementById('curtain');
+    const hint    = document.getElementById('hint');
+    const TARGET_URL = '../../explore/grid.html';
+    const THRESHOLD  = 700;   // px of downward scroll before navigating
+    let progress = 0;
+    let navigating = false;
+
+    function setProgress(p) {
+      progress = Math.max(0, Math.min(THRESHOLD, p));
+      curtain.style.height = (progress / THRESHOLD * 100) + 'vh';
+      if (progress >= THRESHOLD && !navigating) {
+        navigating = true;
+        curtain.style.transition = 'height 0.35s ease-out';
+        curtain.style.height = '100vh';
+        setTimeout(() => { window.location.href = TARGET_URL; }, 360);
+      }
+    }
+
+    // Wheel — downward pulls the curtain up from the bottom
+    window.addEventListener('wheel', e => {
+      if (navigating) return;
+      setProgress(progress + e.deltaY);
+    }, { passive: true });
+
+    // Touch — vertical swipe up
+    let touchY = null;
+    window.addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, { passive: true });
+    window.addEventListener('touchmove',  e => {
+      if (touchY === null || navigating) return;
+      const dy = touchY - e.touches[0].clientY;  // positive = swiping up
+      setProgress(progress + dy * 0.6);
+      touchY = e.touches[0].clientY;
+    }, { passive: true });
+    window.addEventListener('touchend', () => { touchY = null; });
+
+    // Clicking the hint pill triggers the full animation
+    hint.addEventListener('click', () => {
+      if (navigating) return;
+      navigating = true;
+      curtain.style.transition = 'height 0.7s ease-out';
+      curtain.style.height = '100vh';
+      setTimeout(() => { window.location.href = TARGET_URL; }, 720);
+    });
+  </script>
+</body>
+</html>

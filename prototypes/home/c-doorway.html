@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Option C — Doorway (slide-up)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #0d0d0d;  /* dark underneath — revealed when homepage slides up */
+    }
+
+    /* Everything that lives "on the homepage" rides inside this wrapper.
+       On click, the wrapper translates up as one and reveals the dark
+       background beneath, which is the collection's own colour. */
+    #homepage {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      z-index: 1;
+      transition: transform 0.85s cubic-bezier(0.77, 0, 0.175, 1);
+    }
+    body.leaving #homepage { transform: translateY(-100vh); }
+
+    .marquee {
+      position: absolute;  /* was fixed — now rides inside #homepage */
+      left: 0;
+      width: 100%;
+      height: 34vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      cursor: grab;
+    }
+    .marquee.top    { top: 0; }
+    .marquee.bottom { bottom: 56px; }  /* shifted up to make room for doorway */
+    body.dragging, body.dragging .marquee { cursor: grabbing; }
+
+    .track {
+      display: flex;
+      gap: 2.2vw;
+      padding: 0 1.1vw;
+      flex-shrink: 0;
+      will-change: transform;
+    }
+    .track img {
+      height: 32vh; width: auto; display: block; flex-shrink: 0;
+      user-select: none; -webkit-user-drag: none; pointer-events: none;
+    }
+
+    #center-text {
+      position: absolute;
+      top: calc(50% - 28px);
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 5rem);
+      color: #000;
+      text-align: center;
+      line-height: 1.0;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    body { opacity: 0; transition: opacity 1.6s ease; }
+    body.ready { opacity: 1; }
+
+    /* ─── Doorway strip ───────────────────────────────────── */
+    #footer-strip {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 56px;
+      background: #0d0d0d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 20;
+      box-shadow: 0 -10px 24px rgba(0,0,0,0.06);
+    }
+
+    #colophon {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.42);
+      white-space: nowrap;
+      user-select: none;
+    }
+    #colophon .dot { margin: 0 10px; color: rgba(255,255,255,0.28); }
+
+    #portal-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.32em;
+      color: rgba(255,255,255,0.78);
+      text-decoration: none;
+      padding: 10px 0 10px 14px;
+      cursor: pointer;
+      transition: color 0.25s;
+    }
+    #portal-link:hover { color: #fff; }
+    #portal-link .arrow {
+      display: inline-block;
+      animation: nod 2.2s ease-in-out infinite;
+    }
+    @keyframes nod {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(3px); }
+    }
+
+    #footer-strip:hover #colophon { color: rgba(255,255,255,0.55); }
+    #footer-strip:hover { background: #000; }
+
+    /* When we're committing to the transition, settle the arrow
+       into its "pulled down" state instead of bouncing. */
+    body.leaving #portal-link .arrow {
+      animation: none;
+      transform: translateY(4px);
+      transition: transform 0.3s ease;
+    }
+
+    @media (max-width: 460px) {
+      #colophon { display: none; }
+      #footer-strip { justify-content: center; padding: 0 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="homepage">
+    <div class="marquee top"><div class="track" id="track-top"></div></div>
+    <div class="marquee bottom"><div class="track" id="track-bottom"></div></div>
+    <div id="center-text">THIS IS A STORY OF<br>LOVE AND DEATH</div>
+
+    <div id="footer-strip">
+      <div id="colophon">A PERSONAL ARCHIVE<span class="dot">·</span>ONGOING</div>
+      <a id="portal-link" href="../../explore/grid.html">THE COLLECTION<span class="arrow">&darr;</span></a>
+    </div>
+  </div>
+
+  <script src="../../js/marquee.js"></script>
+  <script>
+    initMarquee({
+      images: [
+        "../../images/16884654318215563291720051695677.webp",
+        "../../images/1711998625011364017473959676309.webp",
+        "../../images/17165775964166598959802942392100.webp",
+        "../../images/camdenthrasher.webp",
+        "../../images/davidemessora.webp",
+        "../../images/retroracing_culture.webp",
+        "../../images/custom-harley-xr1200-16.webp",
+        "../../images/custom-harley-xr1200-19.webp",
+        "../../images/custom-harley-xr1200-2.webp",
+        "../../images/custom-harley-xr1200.webp",
+        "../../images/kemal-sanli.webp",
+        "../../images/mark-busch.webp",
+      ]
+    });
+
+    // ── Slide-up transition on link click ─────────────────────
+    // The down arrow is literal: you push the homepage up (and yourself
+    // down) into the archive. The white plane lifts, the dark #0d0d0d
+    // beneath is revealed — which is the collection's own colour.
+    document.getElementById('portal-link').addEventListener('click', e => {
+      e.preventDefault();
+      document.body.classList.add('leaving');
+      setTimeout(() => {
+        window.location.href = e.currentTarget.href;
+      }, 820);
+    });
+  </script>
+</body>
+</html>
