@@ -208,9 +208,13 @@
       background: rgba(255,255,255,0.25);
       border-color: rgba(255,255,255,0.5);
     }
-    .lightbox-btn.liked {
-      color: #ff4444;
+    .lightbox-like-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
     }
+    .lightbox-like-btn svg { display: block; }
 
     #lightbox-notes {
       max-width: 600px;
@@ -396,7 +400,7 @@
       <div id="lightbox-meta">
         <div id="lightbox-title"></div>
         <div id="lightbox-actions">
-          <button id="lightbox-like" class="lightbox-btn">♡</button>
+          <button id="lightbox-like" class="lightbox-btn lightbox-like-btn"></button>
           <button id="lightbox-share" class="lightbox-btn">Share</button>
         </div>
       </div>
@@ -462,10 +466,10 @@
 
     // ── Heart SVG ─────────────────────────────────────────────────
     const PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
-    function heartSVG(filled) {
+    function heartSVG(filled, size = 13) {
       return filled
-        ? `<svg viewBox="0 0 24 24" width="13" height="13" fill="#ff4444"><path d="${PATH}"/></svg>`
-        : `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linejoin="round"><path d="${PATH}"/></svg>`;
+        ? `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="#ff4444"><path d="${PATH}"/></svg>`
+        : `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linejoin="round"><path d="${PATH}"/></svg>`;
     }
 
     // ── Auth state management ────────────────────────────────────
@@ -789,6 +793,10 @@
     const lightboxVideo = document.getElementById('lightbox-video');
     const lightboxTitle = document.getElementById('lightbox-title');
     const lightboxLikeBtn = document.getElementById('lightbox-like');
+    function renderLightboxHeart() {
+      lightboxLikeBtn.innerHTML = heartSVG(lightboxLikeBtn.classList.contains('liked'), 18);
+    }
+    renderLightboxHeart();
     const lightboxShareBtn = document.getElementById('lightbox-share');
     const lightboxNotesList = document.getElementById('lightbox-notes-list');
     const lightboxNotesInput = document.getElementById('lightbox-notes-input');
@@ -910,6 +918,7 @@
           console.error('Check like status failed:', error);
         }
       }
+      renderLightboxHeart();
 
       lightboxNotesInput.value = '';
       lightboxNotesSubmit.classList.remove('active');
@@ -953,6 +962,7 @@
           await addLike(currentEntry.file);
         }
         lightboxLikeBtn.classList.toggle('liked');
+        renderLightboxHeart();
       } catch (error) {
         console.error('Like toggle failed:', error);
       }
