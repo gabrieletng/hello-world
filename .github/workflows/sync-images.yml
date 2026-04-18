@@ -30,16 +30,22 @@ jobs:
 
       - name: Optimize new images
         run: python3 scripts/optimize.py /github/workspace/ethos/
+        continue-on-error: true
 
       - name: Update manifest
         run: python3 scripts/update-manifest.py
 
-      - name: Commit changes
+      - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add images/ manifest.json
-          git diff-index --quiet HEAD || git commit -m "Auto: sync optimized images and update manifest"
-
-      - name: Push changes
-        run: git push origin main
+          # Only commit if there are changes
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Auto: sync optimized images and update manifest"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

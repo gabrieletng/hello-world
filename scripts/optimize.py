@@ -41,11 +41,25 @@ def main():
         sys.exit(1)
 
     src_dir = Path(sys.argv[1]).resolve()
+
+    # Handle missing source directory gracefully
+    if not src_dir.exists():
+        print(f"Source directory does not exist: {src_dir}")
+        return
+
+    if not src_dir.is_dir():
+        print(f"Source path is not a directory: {src_dir}")
+        return
+
     repo_root = Path(__file__).parent.parent
     dest_dir = repo_root / 'images'
     dest_dir.mkdir(exist_ok=True)
 
-    files = sorted(f for f in src_dir.iterdir() if f.is_file())
+    try:
+        files = sorted(f for f in src_dir.iterdir() if f.is_file())
+    except PermissionError:
+        print(f"Permission denied reading directory: {src_dir}")
+        return
     converted = skipped = errors = 0
 
     for f in files:
