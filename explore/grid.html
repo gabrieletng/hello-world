@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Collection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
   <style>
+    * { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
@@ -109,7 +111,6 @@
       padding: 8px 12px;
       border-radius: 4px;
       cursor: pointer;
-      font-family: system-ui, sans-serif;
       transition: all 0.2s;
     }
     #lightbox-auth button:hover {
@@ -150,7 +151,6 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 14px;
-      font-family: system-ui, sans-serif;
       transition: all 0.2s;
     }
     .lightbox-btn:hover {
@@ -164,93 +164,150 @@
     #lightbox-notes {
       max-width: 600px;
       width: 100%;
-      margin-top: 20px;
       border-top: 1px solid rgba(255,255,255,0.15);
       padding-top: 20px;
     }
     #lightbox-notes-header {
-      color: rgba(255,255,255,0.7);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.5);
+      font-size: 11px;
+      letter-spacing: 0.12em;
       margin-bottom: 16px;
     }
     #lightbox-notes-list {
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
       margin-bottom: 16px;
-      padding-right: 8px;
     }
     .note-item {
-      margin-bottom: 12px;
-      font-size: 13px;
-      color: #fff;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .note-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      flex-shrink: 0;
+    }
+    .note-body { flex: 1; }
+    .note-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 2px;
     }
     .note-author {
-      font-weight: 500;
+      font-size: 12px;
       color: rgba(255,255,255,0.9);
     }
     .note-time {
-      font-size: 11px;
-      color: rgba(255,255,255,0.5);
-      margin-left: 6px;
-    }
-    .note-text {
-      margin-top: 4px;
-      color: rgba(255,255,255,0.8);
-      word-wrap: break-word;
+      font-size: 10px;
+      color: rgba(255,255,255,0.4);
     }
     .note-delete {
-      font-size: 11px;
-      color: rgba(255,255,255,0.4);
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
       cursor: pointer;
-      margin-left: 8px;
+      margin-left: auto;
     }
-    .note-delete:hover {
-      color: rgba(255,255,255,0.7);
+    .note-delete:hover { color: rgba(255,255,255,0.7); }
+    .note-text {
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      word-wrap: break-word;
+      letter-spacing: 0.02em;
+    }
+    #lightbox-notes-message {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      text-align: center;
+      padding: 12px 0;
     }
 
+    /* Notes input area */
     #lightbox-notes-input-section {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 14px;
+    }
+    #notes-sign-in-prompt {
       display: flex;
-      gap: 8px;
+      align-items: center;
+      gap: 12px;
+    }
+    #notes-sign-in-btn {
+      flex: 1;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.6);
+      padding: 11px 16px;
+      border-radius: 22px;
+      cursor: pointer;
+      font-size: 13px;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    #notes-sign-in-btn:hover {
+      border-color: rgba(255,255,255,0.5);
+      color: #fff;
+    }
+    #notes-sign-in-btn span {
+      color: rgba(255,255,255,0.35);
+      font-size: 11px;
+      margin-left: 8px;
+    }
+    #notes-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #notes-user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      flex-shrink: 0;
     }
     #lightbox-notes-input {
       flex: 1;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
       color: #fff;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-family: system-ui, sans-serif;
+      padding: 8px 0;
       font-size: 13px;
       outline: none;
+      letter-spacing: 0.02em;
     }
     #lightbox-notes-input:focus {
-      border-color: rgba(255,255,255,0.4);
-      background: rgba(255,255,255,0.12);
+      border-bottom-color: rgba(255,255,255,0.5);
     }
     #lightbox-notes-input::placeholder {
       color: rgba(255,255,255,0.3);
     }
     #lightbox-notes-submit {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 4px;
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.35);
+      padding: 0;
       cursor: pointer;
-      font-size: 13px;
-      font-family: system-ui, sans-serif;
-      transition: all 0.2s;
-    }
-    #lightbox-notes-submit:hover {
-      background: rgba(255,255,255,0.25);
-      border-color: rgba(255,255,255,0.5);
-    }
-    #lightbox-notes-message {
       font-size: 12px;
-      color: rgba(255,255,255,0.6);
-      text-align: center;
+      letter-spacing: 0.06em;
+      transition: color 0.2s;
+    }
+    #lightbox-notes-submit.active {
+      color: #fff;
     }
 
     #hint {
@@ -291,11 +348,17 @@
         </div>
       </div>
       <div id="lightbox-notes">
-        <div id="lightbox-notes-header">Add Notes</div>
+        <div id="lightbox-notes-header">Notes</div>
         <div id="lightbox-notes-list"></div>
         <div id="lightbox-notes-input-section">
-          <input id="lightbox-notes-input" type="text" placeholder="Add a note..." maxlength="500" />
-          <button id="lightbox-notes-submit" class="lightbox-btn">Post</button>
+          <div id="notes-sign-in-prompt">
+            <button id="notes-sign-in-btn">Add a note... <span>Sign in →</span></button>
+          </div>
+          <div id="notes-input-row" style="display:none;">
+            <div id="notes-user-avatar"></div>
+            <input id="lightbox-notes-input" type="text" placeholder="Add a note..." maxlength="500" />
+            <button id="lightbox-notes-submit">POST</button>
+          </div>
         </div>
       </div>
     </div>
@@ -383,6 +446,21 @@
         await signOutUser();
       } catch (error) {
         console.error('Sign-out failed:', error);
+      }
+    });
+
+    // Notes sign-in prompt — sets ?image= URL first so user returns to same image after OAuth
+    document.getElementById('notes-sign-in-btn').addEventListener('click', async e => {
+      e.stopPropagation();
+      if (currentEntry) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('image', currentEntry.file);
+        window.history.replaceState({ image: currentEntry.file }, '', url.toString());
+      }
+      try {
+        await signInGoogle();
+      } catch (error) {
+        console.error('Sign-in failed:', error);
       }
     });
 
@@ -653,11 +731,17 @@
           const timeStr = formatTime(note.createdAt);
           const user = getCurrentUser();
           const isOwner = user && user.uid === note.userId;
-          let deleteBtn = '';
-          if (isOwner) {
-            deleteBtn = `<span class="note-delete" data-note-id="${note.id}">delete</span>`;
-          }
-          noteEl.innerHTML = `<div><span class="note-author">${note.displayName}</span><span class="note-time">${timeStr}</span>${deleteBtn}</div><div class="note-text">${escapeHtml(note.text)}</div>`;
+          const initials = (note.displayName || 'U').charAt(0).toUpperCase();
+          noteEl.innerHTML = `
+            <div class="note-avatar">${initials}</div>
+            <div class="note-body">
+              <div class="note-meta">
+                <span class="note-author">${escapeHtml(note.displayName || 'Anonymous')}</span>
+                <span class="note-time">${timeStr}</span>
+                ${isOwner ? `<span class="note-delete" data-note-id="${note.id}">×</span>` : ''}
+              </div>
+              <div class="note-text">${escapeHtml(note.text)}</div>
+            </div>`;
           if (isOwner) {
             noteEl.querySelector('.note-delete').addEventListener('click', async e => {
               e.stopPropagation();
@@ -698,12 +782,17 @@
 
     function updateNotesInputSection() {
       const user = getCurrentUser();
+      const signInPrompt = document.getElementById('notes-sign-in-prompt');
+      const inputRow = document.getElementById('notes-input-row');
+      const userAvatar = document.getElementById('notes-user-avatar');
       if (user) {
-        lightboxNotesInput.style.display = 'block';
-        lightboxNotesSubmit.style.display = 'block';
+        signInPrompt.style.display = 'none';
+        inputRow.style.display = 'flex';
+        const name = user.displayName || user.email || 'U';
+        userAvatar.textContent = name.charAt(0).toUpperCase();
       } else {
-        lightboxNotesInput.style.display = 'none';
-        lightboxNotesSubmit.style.display = 'none';
+        signInPrompt.style.display = 'flex';
+        inputRow.style.display = 'none';
       }
     }
 
@@ -728,8 +817,15 @@
       }
 
       lightboxNotesInput.value = '';
+      lightboxNotesSubmit.classList.remove('active');
       await loadNotes();
       updateNotesInputSection();
+
+      // Push image URL into browser history so sharing / back-button works
+      const url = new URL(window.location.href);
+      url.searchParams.set('image', entry.file);
+      window.history.pushState({ image: entry.file }, '', url.toString());
+
       lightbox.classList.add('open');
     }
 
@@ -737,6 +833,10 @@
       lightbox.classList.remove('open');
       lightboxImg.src = '';
       currentEntry = null;
+      // Remove image param from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('image');
+      window.history.pushState({}, '', url.toString());
     }
 
     lightboxLikeBtn.addEventListener('click', async e => {
@@ -783,6 +883,7 @@
       try {
         await addNote(currentEntry.file, lightboxNotesInput.value);
         lightboxNotesInput.value = '';
+        lightboxNotesSubmit.classList.remove('active');
         await loadNotes();
       } catch (error) {
         console.error('Add note failed:', error);
@@ -795,6 +896,10 @@
         e.preventDefault();
         lightboxNotesSubmit.click();
       }
+    });
+
+    lightboxNotesInput.addEventListener('input', () => {
+      lightboxNotesSubmit.classList.toggle('active', lightboxNotesInput.value.trim().length > 0);
     });
 
     lightbox.addEventListener('click', e => { if (e.target === lightbox || e.target.parentElement === lightbox) closeLightbox(); });
