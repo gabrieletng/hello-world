@@ -9,7 +9,7 @@ import re
 import sys
 
 # Public project key — safe to commit. Host is eu or us depending on region.
-POSTHOG_KEY = "phc_REPLACE_ME"
+POSTHOG_KEY = "phc_wj3bjUJBhTUwVwmMngVTVcCKVdhdvC2deqCDBhDfN67f"
 POSTHOG_HOST = "https://eu.i.posthog.com"
 
 SNIPPET = f"""  <!-- PostHog -->
