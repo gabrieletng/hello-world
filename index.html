@@ -109,96 +109,97 @@
     buildTrack(trackBot, pool.slice(6));
 
     // ─── Motion model ────────────────────────────────────────────────────────
+    // topDisp / botDisp are the actual translateX values applied to each track.
     //
-    // topOff / botOff are ever-increasing accumulators (px).
+    //   topDisp: starts at 0, decreases (moves left), wraps at -topHW → 0
+    //   botDisp: starts at -botHW, increases (moves right), wraps at 0 → -botHW
     //
-    //   top transform  = -(topOff % topHW)         → drifts LEFT  at topSpeed
-    //   bot transform  =  (botOff % botHW) - botHW → drifts RIGHT at botSpeed
+    // During drag we apply the per-frame cursor delta directly to both
+    // display values — no accumulators, no modulo confusion:
+    //   topDisp += delta   (cursor right → top follows right)
+    //   botDisp -= delta   (cursor right → bottom goes left, reciprocal)
     //
-    // During drag, the accumulators freeze. `drag` (cursor Δx) is applied to
-    // both in the same direction so their relative movement is reciprocal:
-    //
-    //   top effective  = topOff - drag  →  drag right  = top shifts right
-    //   bot effective  = botOff - drag  →  drag right  = bot shifts left
-    //
-    // On release: drag is baked into the accumulators (no position jump),
-    // auto-scroll resumes immediately at the same idle speed.
-    //
-    // Speeds are derived from the track half-width and the original CSS
-    // durations so the idle pace matches exactly what it was before.
+    // Both values are wrapped after every update to stay in range.
     // ─────────────────────────────────────────────────────────────────────────
 
-    const TOP_DURATION = 95;   // seconds — matches the old CSS animation
+    const TOP_DURATION = 95;
     const BOT_DURATION = 115;
 
     let topHW = 1, botHW = 1;
     let topSpeed = 0, botSpeed = 0;
-    let topOff = 0, botOff = 0;
+    let topDisp = 0, botDisp = 0;   // set properly after load
 
-    // Drag state
-    let dragging   = false;
-    let drag       = 0;      // live Δx from drag-start
-    let dragStartX = 0;
-
-    function applyTransform() {
-      const topEff = topOff - drag;
-      const botEff = botOff - drag;
-      const t = -(((topEff % topHW) + topHW) % topHW);
-      const b =  (((botEff % botHW) + botHW) % botHW) - botHW;
-      trackTop.style.transform = `translateX(${t}px)`;
-      trackBot.style.transform = `translateX(${b}px)`;
+    function wrapTop() {
+      while (topDisp >       0) topDisp -= topHW;
+      while (topDisp < -topHW) topDisp += topHW;
+    }
+    function wrapBot() {
+      while (botDisp >       0) botDisp -= botHW;
+      while (botDisp < -botHW) botDisp += botHW;
     }
 
-    // ─── Pointer handlers ─────────────────────────────────────────────────────
-    function pDown(x) {
-      dragging   = true;
-      dragStartX = x;
-      drag       = 0;
+    function applyTransform() {
+      trackTop.style.transform = `translateX(${topDisp}px)`;
+      trackBot.style.transform = `translateX(${botDisp}px)`;
+    }
+
+    // ─── Drag state ──────────────────────────────────────────────────────────
+    let dragging  = false;
+    let prevDragX = 0;
+    let grabDir   = 1;  // +1 if top band grabbed, -1 if bottom band grabbed
+
+    function pDown(x, clientY) {
+      dragging  = true;
+      prevDragX = x;
+      // Which band is being grabbed? Top half of screen → top band, bottom → bottom band.
+      grabDir   = clientY < window.innerHeight / 2 ? 1 : -1;
       document.body.classList.add('dragging');
     }
 
     function pMove(x) {
       if (!dragging) return;
-      drag = x - dragStartX;
+      const delta = x - prevDragX;
+      prevDragX   = x;
+      // Grabbed band follows cursor; other band mirrors in the opposite direction.
+      topDisp += delta * grabDir;
+      botDisp -= delta * grabDir;
+      wrapTop(); wrapBot();
+      applyTransform();
     }
 
     function pUp() {
       if (!dragging) return;
       dragging = false;
-      // Bake current drag into accumulators so position doesn't jump.
-      topOff -= drag;
-      botOff -= drag;
-      drag = 0;
       document.body.classList.remove('dragging');
     }
 
-    document.addEventListener('mousedown',  e => { e.preventDefault(); pDown(e.clientX); });
+    document.addEventListener('mousedown',  e => { e.preventDefault(); pDown(e.clientX, e.clientY); });
     document.addEventListener('mousemove',  e => pMove(e.clientX));
     document.addEventListener('mouseup',    ()  => pUp());
     document.addEventListener('mouseleave', ()  => pUp());
 
-    document.addEventListener('touchstart', e => pDown(e.touches[0].clientX),         { passive: true });
-    document.addEventListener('touchmove',  e => pMove(e.touches[0].clientX),         { passive: true });
+    document.addEventListener('touchstart', e => pDown(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    document.addEventListener('touchmove',  e => pMove(e.touches[0].clientX),                        { passive: true });
     document.addEventListener('touchend',   ()  => pUp());
 
-    // ─── Animation loop ───────────────────────────────────────────────────────
+    // ─── Animation loop ──────────────────────────────────────────────────────
     let lastT = 0;
 
     function frame(now) {
       const dt = Math.min(0.05, (now - lastT) / 1000);
       lastT = now;
 
-      // Accumulators only advance when not grabbing.
       if (!dragging) {
-        topOff += topSpeed * dt;
-        botOff += botSpeed * dt;
+        topDisp -= topSpeed * dt;  // drifts left
+        botDisp += botSpeed * dt;  // drifts right
+        wrapTop(); wrapBot();
+        applyTransform();
       }
 
-      applyTransform();
       requestAnimationFrame(frame);
     }
 
-    // ─── Init ─────────────────────────────────────────────────────────────────
+    // ─── Init ────────────────────────────────────────────────────────────────
     const allImgs = [...document.querySelectorAll('.track img')];
     Promise.all(allImgs.map(img =>
       img.decode().catch(() => new Promise(res => {
@@ -208,9 +209,10 @@
     )).then(() => {
       topHW    = trackTop.scrollWidth / 2;
       botHW    = trackBot.scrollWidth / 2;
-      // Derive px/s from track width ÷ duration → same visual pace as the CSS was.
       topSpeed = topHW / TOP_DURATION;
       botSpeed = botHW / BOT_DURATION;
+      topDisp  = 0;       // top starts at beginning of copy 1, drifts left
+      botDisp  = -botHW;  // bot starts at beginning of copy 2, drifts right
       document.body.classList.add('ready');
       requestAnimationFrame(t => { lastT = t; frame(t); });
     });
