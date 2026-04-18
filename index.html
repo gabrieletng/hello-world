@@ -67,192 +67,24 @@
   <div class="marquee bottom"><div class="track" id="track-bottom"></div></div>
   <div id="center-text">THIS IS A STORY OF<br>LOVE AND DEATH</div>
 
+  <script src="js/marquee.js"></script>
   <script>
-    const SRCS = [
-      "images/16884654318215563291720051695677.jpg",
-      "images/1711998625011364017473959676309.jpg",
-      "images/17165775964166598959802942392100.jpg",
-      "images/camdenthrasher.png",
-      "images/davidemessora.png",
-      "images/retroracing_culture.jpg",
-      "images/custom-harley-xr1200-16.webp",
-      "images/custom-harley-xr1200-19.webp",
-      "images/custom-harley-xr1200-2.webp",
-      "images/custom-harley-xr1200.jpg",
-      "images/kemal-sanli.jpg",
-      "images/mark-busch.jpg"
-    ];
-
-    function shuffled(arr) {
-      const a = arr.slice();
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-
-    function buildTrack(el, srcs) {
-      srcs.concat(srcs).forEach(src => {
-        const img = document.createElement('img');
-        img.src = src;
-        img.decoding = 'async';
-        img.loading  = 'eager';
-        el.appendChild(img);
-      });
-    }
-
-    const pool = shuffled(SRCS);
-    const trackTop = document.getElementById('track-top');
-    const trackBot = document.getElementById('track-bottom');
-    buildTrack(trackTop, pool.slice(0, 6));
-    buildTrack(trackBot, pool.slice(6));
-
-    // ─── Motion model ────────────────────────────────────────────────────────
-    // topDisp / botDisp are the actual translateX values applied to each track.
-    //
-    //   topDisp: starts at 0, decreases (moves left), wraps at -topHW → 0
-    //   botDisp: starts at -botHW, increases (moves right), wraps at 0 → -botHW
-    //
-    // During drag we apply the per-frame cursor delta directly to both
-    // display values — no accumulators, no modulo confusion:
-    //   topDisp += delta   (cursor right → top follows right)
-    //   botDisp -= delta   (cursor right → bottom goes left, reciprocal)
-    //
-    // Both values are wrapped after every update to stay in range.
-    // ─────────────────────────────────────────────────────────────────────────
-
-    const TOP_DURATION = 95;
-    const BOT_DURATION = 115;
-
-    let topHW = 1, botHW = 1;
-    let topSpeed = 0, botSpeed = 0;
-    let topDisp = 0, botDisp = 0;   // set properly after load
-
-    function wrapTop() {
-      while (topDisp >       0) topDisp -= topHW;
-      while (topDisp < -topHW) topDisp += topHW;
-    }
-    function wrapBot() {
-      while (botDisp >       0) botDisp -= botHW;
-      while (botDisp < -botHW) botDisp += botHW;
-    }
-
-    function applyTransform() {
-      trackTop.style.transform = `translateX(${topDisp}px)`;
-      trackBot.style.transform = `translateX(${botDisp}px)`;
-    }
-
-    // ─── Drag + inertia state ────────────────────────────────────────────────
-    // `spin` is the current rightward extra velocity of the top band (px/s).
-    // After release it decays to 0 with a ~1.2s half-life, at which point
-    // both bands return to their natural auto-scroll speeds. The bottom band
-    // always mirrors: it receives -spin.
-    //
-    //   topDisp rate = -topSpeed + spin
-    //   botDisp rate = +botSpeed - spin
-    //
-    let dragging  = false;
-    let prevDragX = 0;
-    let prevVelX  = 0;   // cursor x for velocity sampling
-    let prevVelT  = 0;   // timestamp for velocity sampling
-    let dragVel   = 0;   // instantaneous px/s of cursor at release
-    let grabDir   = 1;   // +1 top grabbed, -1 bottom grabbed
-    let spin      = 0;   // extra velocity (px/s), decays to 0 after release
-
-    const SPIN_HALF = 1.2; // seconds for spin to halve
-
-    function pDown(x, clientY) {
-      dragging  = true;
-      prevDragX = x;
-      prevVelX  = x;
-      prevVelT  = performance.now();
-      dragVel   = 0;
-      spin      = 0;   // cancel any residual inertia when grabbing
-      grabDir   = clientY < window.innerHeight / 2 ? 1 : -1;
-      document.body.classList.add('dragging');
-    }
-
-    function pMove(x) {
-      if (!dragging) return;
-      const now   = performance.now();
-      const delta = x - prevDragX;
-      prevDragX   = x;
-
-      // Sample velocity on a rolling basis to get a stable px/s reading.
-      const velDt = (now - prevVelT) / 1000;
-      if (velDt > 0.004) {
-        dragVel  = (x - prevVelX) / velDt;
-        prevVelX = x;
-        prevVelT = now;
-      }
-
-      topDisp += delta * grabDir;
-      botDisp -= delta * grabDir;
-      wrapTop(); wrapBot();
-      applyTransform();
-    }
-
-    function pUp() {
-      if (!dragging) return;
-      dragging = false;
-      // Seed inertia from the fling velocity.
-      // spin is always in "rightward of top band" terms.
-      spin = dragVel * grabDir;
-      document.body.classList.remove('dragging');
-    }
-
-    document.addEventListener('mousedown',  e => { e.preventDefault(); pDown(e.clientX, e.clientY); });
-    document.addEventListener('mousemove',  e => pMove(e.clientX));
-    document.addEventListener('mouseup',    ()  => pUp());
-    document.addEventListener('mouseleave', ()  => pUp());
-
-    document.addEventListener('touchstart', e => pDown(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-    document.addEventListener('touchmove',  e => pMove(e.touches[0].clientX),                        { passive: true });
-    document.addEventListener('touchend',   ()  => pUp());
-
-    // ─── Animation loop ──────────────────────────────────────────────────────
-    let lastT = 0;
-
-    function frame(now) {
-      const dt = Math.min(0.05, (now - lastT) / 1000);
-      lastT = now;
-
-      if (!dragging) {
-        // Decay spin toward 0; when it reaches near-zero, snap it clean.
-        if (spin !== 0) {
-          spin *= Math.pow(0.5, dt / SPIN_HALF);
-          if (Math.abs(spin) < 0.5) spin = 0;
-        }
-        // Natural auto-scroll ± residual inertia.
-        topDisp += (-topSpeed + spin) * dt;
-        botDisp += ( botSpeed - spin) * dt;
-        wrapTop(); wrapBot();
-        applyTransform();
-      }
-
-      requestAnimationFrame(frame);
-    }
-
-    // ─── Init ────────────────────────────────────────────────────────────────
-    const allImgs = [...document.querySelectorAll('.track img')];
-    Promise.all(allImgs.map(img =>
-      img.decode().catch(() => new Promise(res => {
-        img.addEventListener('load',  res, { once: true });
-        img.addEventListener('error', res, { once: true });
-      }))
-    )).then(() => {
-      topHW    = trackTop.scrollWidth / 2;
-      botHW    = trackBot.scrollWidth / 2;
-      topSpeed = topHW / TOP_DURATION;
-      botSpeed = botHW / BOT_DURATION;
-      topDisp  = 0;       // top starts at beginning of copy 1, drifts left
-      botDisp  = -botHW;  // bot starts at beginning of copy 2, drifts right
-      document.body.classList.add('ready');
-      requestAnimationFrame(t => { lastT = t; frame(t); });
+    initMarquee({
+      images: [
+        "images/16884654318215563291720051695677.jpg",
+        "images/1711998625011364017473959676309.jpg",
+        "images/17165775964166598959802942392100.jpg",
+        "images/camdenthrasher.png",
+        "images/davidemessora.png",
+        "images/retroracing_culture.jpg",
+        "images/custom-harley-xr1200-16.webp",
+        "images/custom-harley-xr1200-19.webp",
+        "images/custom-harley-xr1200-2.webp",
+        "images/custom-harley-xr1200.jpg",
+        "images/kemal-sanli.jpg",
+        "images/mark-busch.jpg",
+      ]
     });
-
-    setTimeout(() => document.body.classList.add('ready'), 4000);
   </script>
 </body>
 </html>
