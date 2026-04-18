@@ -404,22 +404,66 @@
     const MAX_TRIES = 1200;    // rejection attempts per image before giving up
 
     // ── Pan / zoom ────────────────────────────────────────────────
-    let zoom = 0.4, panX = 0, panY = 0;
+    let zoom = 0.7, panX = 0, panY = 0;
     const MIN_ZOOM = 0.05, MAX_ZOOM = 2.5;
+    const INITIAL_ZOOM = 0.7;            // start zoomed-in so few items are on-screen
+    const CULL_MARGIN = 400;             // px around viewport (canvas coords) to keep loaded
 
     const stage  = document.getElementById('stage');
     const canvas = document.getElementById('canvas');
 
     function applyTransform() {
       canvas.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+      scheduleCull();
     }
 
-    function fitCanvas(w, h) {
-      zoom = Math.min(window.innerWidth / w, window.innerHeight / h) * 0.94;
-      panX = (window.innerWidth  - w * zoom) / 2;
-      panY = (window.innerHeight - h * zoom) / 2;
+    function setInitialView(w, h) {
+      zoom = INITIAL_ZOOM;
+      // Center on a random point inside the canvas so every visit opens on a
+      // different neighborhood — still "zoomed-in", not the full bird's-eye.
+      const cx = w * (0.25 + Math.random() * 0.5);
+      const cy = h * (0.25 + Math.random() * 0.5);
+      panX = window.innerWidth / 2  - cx * zoom;
+      panY = window.innerHeight / 2 - cy * zoom;
       applyTransform();
     }
+
+    // ── Viewport culling ──────────────────────────────────────────
+    // Only attach <img src> for items whose rect intersects the visible
+    // viewport (+ margin). Offscreen items stay as empty divs → no decoded
+    // bitmap, no compositor layer, cheap to pan/zoom past.
+    let placedItems = [];
+    let cullRaf = null;
+
+    function cullViewport() {
+      cullRaf = null;
+      const left   = -panX / zoom - CULL_MARGIN;
+      const top    = -panY / zoom - CULL_MARGIN;
+      const right  = left + window.innerWidth  / zoom + CULL_MARGIN * 2;
+      const bottom = top  + window.innerHeight / zoom + CULL_MARGIN * 2;
+
+      for (const p of placedItems) {
+        const visible = p.x < right && p.x + p.w > left && p.y < bottom && p.y + p.h > top;
+        if (visible && !p.imgEl) {
+          const img = document.createElement('img');
+          img.draggable = false;
+          img.decoding = 'async';
+          img.src = `../${p.entry.file}`;
+          p.el.insertBefore(img, p.el.firstChild);
+          p.imgEl = img;
+        } else if (!visible && p.imgEl) {
+          p.imgEl.remove();
+          p.imgEl = null;
+        }
+      }
+    }
+
+    function scheduleCull() {
+      if (cullRaf != null) return;
+      cullRaf = requestAnimationFrame(cullViewport);
+    }
+
+    window.addEventListener('resize', scheduleCull);
 
     // ── Heart SVG ─────────────────────────────────────────────────
     const PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
@@ -492,21 +536,15 @@
       .then(r => r.json())
       .then(manifest => {
 
-        // 1. Load all images → get actual aspect ratios, assign random sizes
-        return Promise.all(manifest.map(entry => new Promise(resolve => {
-          const img = new Image();
-          img.onload = () => {
-            const asp = img.naturalWidth / img.naturalHeight || 1;
-            let h = MIN_H + Math.random() * (MAX_H - MIN_H);
-            let w = h * asp;
-            if (w > MAX_W) { w = MAX_W; h = w / asp; }
-            resolve({ w: Math.round(w), h: Math.round(h), img, entry });
-          };
-          img.onerror = () => resolve({ w: 120, h: 90, img, entry });
-          img.src = `../${entry.file}`;
-        })));
-
-      }).then(imageData => {
+        // 1. Aspect ratios come from manifest w/h — no image downloads needed
+        //    to compute layout. Entries missing dimensions fall back to 1:1.
+        const imageData = manifest.map(entry => {
+          const asp = (entry.w && entry.h) ? entry.w / entry.h : 1;
+          let h = MIN_H + Math.random() * (MAX_H - MIN_H);
+          let w = h * asp;
+          if (w > MAX_W) { w = MAX_W; h = w / asp; }
+          return { w: Math.round(w), h: Math.round(h), entry };
+        });
 
         // 2. Shuffle, then sort largest-first so big images claim space when canvas is emptiest.
         // Positions are still fully random; only placement sequence changes.
@@ -551,14 +589,12 @@
           placed.push({ x: Math.round(x), y: Math.round(y), ...d });
         }
 
-        // 5. Build DOM from computed positions
+        // 5. Build DOM shells (no <img> yet — viewport culling attaches them)
+        const frag = document.createDocumentFragment();
         for (const p of placed) {
           const item = document.createElement('div');
           item.className = 'item';
           item.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;
-
-          p.img.draggable = false;
-          item.appendChild(p.img);
 
           const likeBtn = document.createElement('button');
           likeBtn.className = 'like-btn';
@@ -589,12 +625,16 @@
             if (!didDrag) openLightbox(p.entry);
           });
 
-          canvas.appendChild(item);
+          frag.appendChild(item);
+          p.el = item;
+          p.imgEl = null;
         }
+        canvas.appendChild(frag);
 
+        placedItems = placed;
         placedEntries = placed.map(p => p.entry);
 
-        fitCanvas(CW, CH);
+        setInitialView(CW, CH);
 
         // Auto-open if image parameter was in URL (must happen in promise chain)
         if (autoOpenImageFile) {

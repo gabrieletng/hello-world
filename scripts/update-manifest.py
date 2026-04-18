@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime
+from PIL import Image
 
 
 def sanitize_filename(filename):
@@ -17,6 +18,15 @@ def sanitize_filename(filename):
     name_without_ext = os.path.splitext(filename)[0]
     # Replace hyphens with spaces and capitalize each word
     return ' '.join(word.capitalize() for word in name_without_ext.split('-'))
+
+
+def read_dimensions(image_path):
+    """Return (width, height) for an image, or (None, None) on failure."""
+    try:
+        with Image.open(image_path) as img:
+            return img.size
+    except Exception:
+        return (None, None)
 
 
 def load_manifest(manifest_path):
@@ -67,20 +77,33 @@ def update_manifest():
 
     # Build updated entries
     updated_entries = []
+    backfilled = 0
 
     # Keep existing entries for images that still exist, add new ones
     for image_file in sorted(current_images):
+        abs_path = script_dir / image_file
         if image_file in existing_map:
-            # Keep existing entry
-            updated_entries.append(existing_map[image_file])
+            entry = existing_map[image_file]
+            # Backfill dimensions for entries written before we tracked them
+            if 'w' not in entry or 'h' not in entry:
+                w, h = read_dimensions(abs_path)
+                if w and h:
+                    entry['w'] = w
+                    entry['h'] = h
+                    backfilled += 1
+            updated_entries.append(entry)
         else:
             # Create new entry with auto-generated title
             filename = os.path.basename(image_file)
+            w, h = read_dimensions(abs_path)
             new_entry = {
                 'file': image_file,
                 'title': sanitize_filename(filename),
-                'date': datetime.now().strftime('%Y-%m-%d')
+                'date': datetime.now().strftime('%Y-%m-%d'),
             }
+            if w and h:
+                new_entry['w'] = w
+                new_entry['h'] = h
             updated_entries.append(new_entry)
 
     # Save updated manifest
@@ -96,6 +119,9 @@ def update_manifest():
         print(f"✓ Removed {old_count - new_count} image(s)")
     else:
         print("✓ Manifest is up to date")
+
+    if backfilled:
+        print(f"  Backfilled dimensions for {backfilled} existing entr{'y' if backfilled == 1 else 'ies'}")
 
     print(f"  Total images: {new_count}")
 
