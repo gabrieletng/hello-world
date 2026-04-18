@@ -935,7 +935,7 @@
       e.stopPropagation();
       if (!currentEntry) return;
       const stem = currentEntry.file.split('/').pop().replace(/\.webp$/, '');
-      const url = new URL(`../share/${stem}.html`, window.location.href).href;
+      const url = new URL(`../explore/share/${stem}.html`, window.location.href).href;
       const text = `${currentEntry.title || 'Image'} – A Story of Love and Death`;
       if (navigator.share) navigator.share({ title: text, url }).catch(() => {});
       else navigator.clipboard.writeText(url).catch(() => {});
