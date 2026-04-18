@@ -131,11 +131,6 @@
       font-family: 'Bebas Neue', sans-serif;
       font-size: 28px;
       letter-spacing: 0.08em;
-      margin-bottom: 8px;
-    }
-    #lightbox-date {
-      font-size: 12px;
-      color: rgba(255,255,255,0.6);
       margin-bottom: 16px;
     }
     #lightbox-actions {
@@ -341,7 +336,6 @@
       <img id="lightbox-img" src="" alt="" />
       <div id="lightbox-meta">
         <div id="lightbox-title"></div>
-        <div id="lightbox-date"></div>
         <div id="lightbox-actions">
           <button id="lightbox-like" class="lightbox-btn">♡</button>
           <button id="lightbox-share" class="lightbox-btn">Share</button>
@@ -708,7 +702,6 @@
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightbox-img');
     const lightboxTitle = document.getElementById('lightbox-title');
-    const lightboxDate = document.getElementById('lightbox-date');
     const lightboxLikeBtn = document.getElementById('lightbox-like');
     const lightboxShareBtn = document.getElementById('lightbox-share');
     const lightboxNotesList = document.getElementById('lightbox-notes-list');
@@ -799,10 +792,9 @@
     async function openLightbox(entry) {
       currentEntry = entry;
       lightboxImg.src = `../${entry.file}`;
-      lightboxImg.alt = entry.title || '';
-      lightboxTitle.textContent = entry.title || '';
-      lightboxTitle.style.display = 'block';
-      lightboxDate.style.display = 'none';
+      const filename = entry.file.split('/').pop();
+      lightboxImg.alt = filename;
+      lightboxTitle.textContent = filename;
 
       const user = getCurrentUser();
       lightboxLikeBtn.classList.remove('liked');
