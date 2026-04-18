@@ -958,26 +958,13 @@
       }
     });
 
-    lightboxShareBtn.addEventListener('click', async e => {
+    lightboxShareBtn.addEventListener('click', e => {
       e.stopPropagation();
       if (!currentEntry) return;
-      const url = `${window.location.origin}${window.location.pathname}?image=${currentEntry.file}`;
+      const stem = currentEntry.file.split('/').pop().replace(/\.webp$/, '');
+      const url = new URL(`share/${stem}.html`, window.location.href).href;
       const text = `${currentEntry.title || 'Image'} – A Story of Love and Death`;
-
       if (navigator.share) {
-        try {
-          const thumbUrl = `../${currentEntry.file.replace('images/', 'images/thumbs/')}`;
-          const response = await fetch(thumbUrl);
-          if (response.ok) {
-            const blob = await response.blob();
-            const filename = currentEntry.file.split('/').pop();
-            const file = new File([blob], filename, { type: blob.type || 'image/webp' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-              await navigator.share({ title: text, text, url, files: [file] });
-              return;
-            }
-          }
-        } catch (_) {}
         navigator.share({ title: text, url }).catch(() => {});
       } else {
         navigator.clipboard.writeText(url).catch(() => {});

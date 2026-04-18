@@ -19,7 +19,8 @@ A photography collection website. Multiple landing pages act as curated "stories
 │   └── [page-name].html   ← additional landing pages
 ├── explore/
 │   ├── grid.html          ← full collection, zoomable/pannable canvas
-│   └── carousel.html      ← full collection, one image at a time
+│   ├── carousel.html      ← full collection, one image at a time
+│   └── share/             ← per-item share pages with og:image (auto-generated)
 ├── profile/
 │   └── index.html         ← liked images, requires sign-in
 ├── images/                ← full image collection (WebP, max 1600px, quality 82)
@@ -30,10 +31,11 @@ A photography collection website. Multiple landing pages act as curated "stories
 ├── sync.sh                 ← run to sync ethos → images/, commit, and push
 ├── .ethos-manifest.json   ← tracks which images/ files were created by sync
 └── scripts/
-    ├── sync-ethos.py      ← compresses new ethos images, removes orphans
-    ├── optimize.py        ← manual: convert arbitrary images to WebP
-    ├── update-manifest.py ← rebuilds manifest.json from images/
-    └── install-hooks.sh   ← installs git pre-commit hook
+    ├── sync-ethos.py         ← compresses new ethos images, removes orphans
+    ├── optimize.py           ← manual: convert arbitrary images to WebP
+    ├── update-manifest.py    ← rebuilds manifest.json from images/
+    ├── update-share-pages.py ← rebuilds explore/share/*.html from manifest.json
+    └── install-hooks.sh      ← installs git pre-commit hook
 ```
 
 ---
