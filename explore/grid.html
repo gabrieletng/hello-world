@@ -11,7 +11,7 @@
       width: 100vw;
       height: 100vh;
       overflow: hidden;
-      background: #404040;
+      background: #1E1E1E;
       cursor: grab;
       user-select: none;
     }
@@ -145,13 +145,14 @@
     }
 
     // ── Layout constants ──────────────────────────────────────────
-    const CANVAS_W   = 3200;
-    const CANVAS_H   = 2600;
+    const CANVAS_W   = 5000;
+    const CANVAS_H   = 4000;
     const COLS       = 17;
     const ROWS       = 10;
     const MIN_H      = 90;
-    const MAX_H      = 210;
-    const PADDING    = 16;   // guaranteed gap between adjacent images
+    const MAX_H      = 200;
+    const JITTER     = 28;   // max px each direction from cell center
+    const BUFFER     = 6;    // min gap to cell boundary (→ ~12px between adjacent images)
 
     // ── Pan / zoom state ──────────────────────────────────────────
     let zoom  = 0.4;   // overridden by centerCanvas()
@@ -200,17 +201,17 @@
           const col = idx % COLS;
           const row = Math.floor(idx / COLS) % ROWS;
 
-          // Pre-generate all random values now (seeded, so layout is deterministic)
-          const displayH  = MIN_H + rng() * (MAX_H - MIN_H);
-          const relPosX   = rng(); // 0–1, scaled to safe range after load
-          const relPosY   = rng();
+          // Pre-generate all random values (seeded → same layout every load)
+          const displayH = MIN_H + rng() * (MAX_H - MIN_H);
+          const jitterX  = (rng() - 0.5) * 2 * JITTER;
+          const jitterY  = (rng() - 0.5) * 2 * JITTER;
 
-          const maxW = cellW - PADDING * 2;
-          const maxH = cellH - PADDING * 2;
+          // Image center: cell center + jitter
+          const cx = (col + 0.5) * cellW + jitterX;
+          const cy = (row + 0.5) * cellH + jitterY;
 
           const item = document.createElement('div');
           item.className = 'item';
-          // Start offscreen; final position set after image loads
           item.style.left = '-9999px';
           item.style.top  = '-9999px';
 
@@ -224,21 +225,21 @@
             const aspect = img.naturalWidth / img.naturalHeight || 1;
             let h = displayH;
             let w = h * aspect;
-            // Clamp so image never exits its cell
-            if (w > maxW) { w = maxW; h = w / aspect; }
-            if (h > maxH) { h = maxH; w = h * aspect; }
-            // Map relPos into the guaranteed-safe zone within the cell
-            const x = col * cellW + PADDING + relPosX * Math.max(0, cellW - PADDING * 2 - w);
-            const y = row * cellH + PADDING + relPosY * Math.max(0, cellH - PADDING * 2 - h);
+            // Clamp size so this image never exits its cell, given its jittered center.
+            // maxHalf* accounts for how far the center already is from the cell edge.
+            const maxHalfW = cellW / 2 - BUFFER - Math.abs(jitterX);
+            const maxHalfH = cellH / 2 - BUFFER - Math.abs(jitterY);
+            if (w / 2 > maxHalfW) { w = maxHalfW * 2; h = w / aspect; }
+            if (h / 2 > maxHalfH) { h = maxHalfH * 2; w = h * aspect; }
             item.style.width  = Math.round(w) + 'px';
             item.style.height = Math.round(h) + 'px';
-            item.style.left   = Math.round(x) + 'px';
-            item.style.top    = Math.round(y) + 'px';
+            item.style.left   = Math.round(cx - w / 2) + 'px';
+            item.style.top    = Math.round(cy - h / 2) + 'px';
           }
 
-          img.onload = place;
-          img.onerror = place; // still place on error so broken images don't block layout
-          if (img.complete && img.naturalWidth) place(); // already cached
+          img.onload  = place;
+          img.onerror = place;
+          if (img.complete && img.naturalWidth) place();
 
           const likeBtn = document.createElement('button');
           likeBtn.className = 'like-btn';
