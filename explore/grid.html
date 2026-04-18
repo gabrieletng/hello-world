@@ -417,6 +417,13 @@
       padding: 0 24px;
       z-index: 20;
       box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s;
+    }
+    #nav-strip.visible {
+      opacity: 1;
+      pointer-events: auto;
     }
     #nav-colophon {
       font-family: 'Bebas Neue', sans-serif;
@@ -1124,8 +1131,22 @@
     function dismissHint() { clearTimeout(hintTimer); hideHint(); }
 
     // ── Nav strip (home + profile) ───────────────────────────────
+    const navStrip = document.getElementById('nav-strip');
     const navHome = document.getElementById('nav-home');
     const navProfile = document.getElementById('nav-profile');
+
+    let navTimer = null;
+    function showNav() {
+      navStrip.classList.add('visible');
+      clearTimeout(navTimer);
+      navTimer = setTimeout(() => navStrip.classList.remove('visible'), 3000);
+    }
+
+    window.addEventListener('mousemove', showNav);
+    window.addEventListener('wheel', showNav, { passive: true });
+    window.addEventListener('mousedown', showNav);
+    window.addEventListener('touchstart', showNav, { passive: true });
+    window.addEventListener('touchmove', showNav, { passive: true });
 
     navHome.addEventListener('click', e => {
       e.stopPropagation();
