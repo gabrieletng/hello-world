@@ -29,7 +29,11 @@
       position: absolute;
       top: 0; left: 0;
       transform-origin: 0 0;
-      will-change: transform;
+      /* will-change: transform intentionally omitted — on mobile, promoting
+         a 9000×6700 canvas to a single compositor layer exceeds GPU tile
+         budgets and leaves items in non-rasterized tiles blank until a
+         transform change forces re-tiling. Without will-change the browser
+         rasterizes the layer normally and every item in view paints. */
     }
 
     .item {
@@ -634,26 +638,6 @@
         placedEntries = placed.map(p => p.entry);
 
         setInitialView(CW, CH);
-
-        // Mobile browsers (Chrome Android, Safari iOS) defer rendering imgs
-        // inside transformed parents until the transform changes at least
-        // once after load — items in view stay blank until the user pans
-        // or zooms. Nudge the transform by a sub-pixel (imperceptible) every
-        // couple of seconds for the first ~30 s to keep the compositor
-        // re-evaluating and painting newly-loaded thumbs. Stops as soon as
-        // the user touches the page, since real pan/zoom triggers the same
-        // re-paint naturally.
-        let nudgeTicks = 0;
-        let nudgeDir = 1;
-        const nudgeTimer = setInterval(() => {
-          panX += 0.1 * nudgeDir;
-          nudgeDir *= -1;
-          applyTransform();
-          if (++nudgeTicks >= 15) clearInterval(nudgeTimer);
-        }, 2000);
-        stage.addEventListener('pointerdown', () => clearInterval(nudgeTimer), { once: true });
-        stage.addEventListener('touchstart',  () => clearInterval(nudgeTimer), { once: true });
-        stage.addEventListener('wheel',       () => clearInterval(nudgeTimer), { once: true });
 
         // Auto-open if image parameter was in URL (must happen in promise chain)
         if (autoOpenImageFile) {
