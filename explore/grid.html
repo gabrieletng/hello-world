@@ -266,14 +266,40 @@
       dismissHint();
     }, { passive: false });
 
-    // ── Pan on drag ───────────────────────────────────────────────
+    // ── Pan on drag (with kinetic inertia) ───────────────────────
+    const COAST_HALF = 0.38;  // seconds for velocity to halve after release
+    const COAST_MIN  = 1.5;   // px/s below which coast stops
+
     let dragging = false, didDrag = false;
     let dragStartX, dragStartY, panStartX, panStartY;
+    let velX = 0, velY = 0, prevX, prevY, prevT;
+    let coastRaf = null;
+
+    function stopCoast() { if (coastRaf) { cancelAnimationFrame(coastRaf); coastRaf = null; } }
+
+    function launchCoast() {
+      stopCoast();
+      let lastT = performance.now();
+      function coast(now) {
+        const dt = Math.min(0.05, (now - lastT) / 1000);
+        lastT = now;
+        const decay = Math.pow(0.5, dt / COAST_HALF);
+        velX *= decay; velY *= decay;
+        if (Math.abs(velX) < COAST_MIN && Math.abs(velY) < COAST_MIN) { coastRaf = null; return; }
+        panX += velX * dt; panY += velY * dt;
+        applyTransform();
+        coastRaf = requestAnimationFrame(coast);
+      }
+      coastRaf = requestAnimationFrame(coast);
+    }
 
     stage.addEventListener('mousedown', e => {
+      stopCoast();
       dragging = true; didDrag = false;
       dragStartX = e.clientX; dragStartY = e.clientY;
       panStartX = panX; panStartY = panY;
+      prevX = e.clientX; prevY = e.clientY; prevT = performance.now();
+      velX = 0; velY = 0;
       document.body.classList.add('dragging');
     });
     window.addEventListener('mousemove', e => {
@@ -282,16 +308,30 @@
       if (Math.abs(dx) + Math.abs(dy) > 4) didDrag = true;
       panX = panStartX + dx; panY = panStartY + dy;
       applyTransform(); dismissHint();
+      const now = performance.now(), dt = (now - prevT) / 1000;
+      if (dt > 0.004) {
+        velX = (e.clientX - prevX) / dt; velY = (e.clientY - prevY) / dt;
+        prevX = e.clientX; prevY = e.clientY; prevT = now;
+      }
     });
     window.addEventListener('mouseup', () => {
+      if (!dragging) return;
       dragging = false;
       document.body.classList.remove('dragging');
+      if (Math.abs(velX) > COAST_MIN || Math.abs(velY) > COAST_MIN) launchCoast();
     });
 
     // Touch
     let lastTX, lastTY, lastPinch = null;
+    let tVelX = 0, tVelY = 0, tPrevX, tPrevY, tPrevT;
     stage.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) { lastTX = e.touches[0].clientX; lastTY = e.touches[0].clientY; didDrag = false; }
+      stopCoast();
+      if (e.touches.length === 1) {
+        lastTX = tPrevX = e.touches[0].clientX;
+        lastTY = tPrevY = e.touches[0].clientY;
+        tPrevT = performance.now();
+        tVelX = 0; tVelY = 0; didDrag = false;
+      }
       if (e.touches.length === 2) lastPinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     }, { passive: true });
     stage.addEventListener('touchmove', e => {
@@ -302,6 +342,12 @@
         panX += dx; panY += dy;
         lastTX = e.touches[0].clientX; lastTY = e.touches[0].clientY;
         applyTransform();
+        const now = performance.now(), dt = (now - tPrevT) / 1000;
+        if (dt > 0.004) {
+          tVelX = (e.touches[0].clientX - tPrevX) / dt;
+          tVelY = (e.touches[0].clientY - tPrevY) / dt;
+          tPrevX = e.touches[0].clientX; tPrevY = e.touches[0].clientY; tPrevT = now;
+        }
       }
       if (e.touches.length === 2 && lastPinch) {
         const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -315,7 +361,13 @@
       }
       dismissHint();
     }, { passive: false });
-    stage.addEventListener('touchend', () => { lastPinch = null; });
+    stage.addEventListener('touchend', e => {
+      lastPinch = null;
+      if (e.touches.length === 0) {
+        velX = tVelX; velY = tVelY;
+        if (Math.abs(velX) > COAST_MIN || Math.abs(velY) > COAST_MIN) launchCoast();
+      }
+    });
 
     // ── Lightbox ──────────────────────────────────────────────────
     const lightbox = document.getElementById('lightbox');
