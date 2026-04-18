@@ -27,8 +27,13 @@ A photography collection website. Multiple landing pages act as curated "stories
 ├── js/
 │   ├── marquee.js         ← shared landing page engine
 │   └── firebase.js        ← shared auth + Firestore module
+├── sync.sh                 ← run to sync ethos → images/, commit, and push
+├── .ethos-manifest.json   ← tracks which images/ files were created by sync
 └── scripts/
-    └── optimize.py        ← local: convert new images to WebP before commit
+    ├── sync-ethos.py      ← compresses new ethos images, removes orphans
+    ├── optimize.py        ← manual: convert arbitrary images to WebP
+    ├── update-manifest.py ← rebuilds manifest.json from images/
+    └── install-hooks.sh   ← installs git pre-commit hook
 ```
 
 ---
@@ -84,7 +89,7 @@ A photography collection website. Multiple landing pages act as curated "stories
 ## Image Management
 
 ### Collection (`images/`)
-- All images: WebP format, max 1600px longest side, quality 82 (via `scripts/optimize.py`)
+- All images: WebP format, max 1600px longest side, quality 82
 - Naming: lowercase, hyphen-separated, no spaces or special chars, `.webp` extension
 - Source of truth: `manifest.json`
 
@@ -100,14 +105,20 @@ A photography collection website. Multiple landing pages act as curated "stories
 - Many entries currently have `null` title/date — to be filled in over time
 
 ### Storage strategy
-- Stay in GitHub repo while under ~500MB (currently ~14MB for 170 images)
+- Stay in GitHub repo while under ~500MB (currently ~14MB for ~400 images)
 - Migrate to Bunny.net CDN when needed — only `manifest.json` file paths change
 
-### Adding new images
+### Source folder
+- Raw images live in `~/Claude/ethos/` — outside the repo, never committed
+- `scripts/sync-ethos.py` compresses new images to WebP and removes orphans
+- `.ethos-manifest.json` tracks which files in `images/` were created by the sync script (manually added images are never touched)
+
+### Adding / removing images
+Drop files into (or delete from) `~/Claude/ethos/`, then run:
 ```bash
-python3 scripts/optimize.py /path/to/new/images/
-# Then update manifest.json with new entries
+cd ~/Claude/hello-world && bash sync.sh
 ```
+The script compresses new images, removes orphaned WebPs, updates `manifest.json`, commits, and pushes automatically.
 
 ---
 
@@ -145,7 +156,8 @@ Open questions:
 - [x] `scripts/optimize.py` — batch WebP conversion
 
 ### Phase 2 — Full Collection (in progress)
-- [x] 170 images compressed and added to collection
+- [x] ~400 images compressed and added to collection
+- [x] `sync.sh` — automated ethos → images/ pipeline (compress, stage, commit, push)
 - [ ] `explore/grid.html` — zoomable/pannable canvas ← current
 - [ ] `explore/carousel.html` — random/chronological toggle
 
