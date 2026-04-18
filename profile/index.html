@@ -1183,7 +1183,7 @@
       resetIdle();
     });
 
-    lightbox.addEventListener('mousemove', resetIdle);
+    lightbox.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') resetIdle(); });
 
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement && lightbox.classList.contains('carousel')) {
