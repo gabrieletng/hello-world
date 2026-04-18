@@ -136,19 +136,24 @@ export async function addNote(imageFile, text) {
 }
 
 export async function getNotes(imageFile) {
+  // Sort client-side: server-side `where(imageFile) + orderBy(createdAt)` needs a
+  // composite index that isn't in the deployed config, so the query throws and
+  // the catch below silently returns []. That's why notes showed as "No notes yet"
+  // under the picture even though the Noted section listed the image.
   try {
     const q = query(
       collection(db, "notes"),
-      where("imageFile", "==", imageFile),
-      orderBy("createdAt", "desc")
+      where("imageFile", "==", imageFile)
     );
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || new Date()
-    }));
+    return snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.() || new Date(0)
+      }))
+      .sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {
     console.error("Error getting notes:", error);
     return [];
