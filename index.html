@@ -15,51 +15,31 @@
       background: #fff;
     }
 
-    /* Two marquee bands: one along the top edge, one along the bottom.
-       Leaves a calm center band for the title. Images are never cropped —
-       height is fixed, width follows the natural aspect. */
-    .marquee {
+    /* Five parallax bands. Heights and speeds are varied so the bands read
+       as layers at different distances rather than a uniform ribbon.
+       A 16vh gap between band C and band D holds the title in clear air. */
+    .band {
       position: fixed;
       left: 0;
       width: 100vw;
-      height: 34vh;
       overflow: hidden;
-      display: flex;
-      align-items: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 2.2s ease;
+      transition-delay: 1.4s;
     }
-    .marquee.top    { top: 0; }
-    .marquee.bottom { bottom: 0; }
+    body.ready .band { opacity: 1; }
 
-    .track {
-      display: flex;
-      gap: 2.2vw;
-      padding: 0 1.1vw;
-      flex-shrink: 0;
+    .band img {
+      position: absolute;
+      top: 50%;
+      /* translateY keeps the tile vertically centered; translateX is driven
+         by JS so we can track positions exactly and enforce the no-duplicate
+         visibility rule. */
       will-change: transform;
-    }
-
-    /* The track contains the sequence twice; translating to -50% lands us
-       on the start of the duplicated copy, which is visually identical —
-       so the loop is seamless. */
-    .marquee.top .track    { animation: scroll-left  95s linear infinite; }
-    .marquee.bottom .track { animation: scroll-right 115s linear infinite; }
-
-    @keyframes scroll-left {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-    @keyframes scroll-right {
-      from { transform: translateX(-50%); }
-      to   { transform: translateX(0); }
-    }
-
-    .track img {
-      height: 32vh;
-      width: auto;
-      display: block;
-      flex-shrink: 0;
       user-select: none;
       -webkit-user-drag: none;
+      display: block;
     }
 
     #center-text {
@@ -78,15 +58,12 @@
       pointer-events: none;
     }
 
-    /* Hold the page white until images have decoded, then fade in together.
-       Prevents any pop-in as the tracks populate. */
-    body { opacity: 0; transition: opacity 1.6s ease; }
+    /* Title lands first on white; bands fade in a beat later. */
+    body { opacity: 0; transition: opacity 0.8s ease; }
     body.ready { opacity: 1; }
   </style>
 </head>
 <body>
-  <div class="marquee top"><div class="track" id="track-top"></div></div>
-  <div class="marquee bottom"><div class="track" id="track-bottom"></div></div>
   <div id="center-text">THIS IS A STORY OF<br>LOVE AND DEATH</div>
 
   <script>
@@ -105,42 +82,136 @@
       "mark busch.jpg"
     ];
 
-    function shuffled(arr) {
-      const a = arr.slice();
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
+    // Each band: vertical placement, tile height, motion.
+    // tileH drives tile width via the image's natural aspect ratio — no crops.
+    // Varied speeds + directions create parallax: thin fast bands near the
+    // edges read as foreground, thicker slow ones in the middle as background.
+    const BANDS = [
+      { top:  '0vh', h: '14vh', tileH: '12vh', speed:  58, dir: -1, gap: 22 },
+      { top: '14vh', h: '20vh', tileH: '18vh', speed:  22, dir:  1, gap: 30 },
+      { top: '34vh', h:  '8vh', tileH:  '7vh', speed:  78, dir: -1, gap: 18 },
+      // 42vh – 58vh: clear band for the title.
+      { top: '58vh', h: '20vh', tileH: '18vh', speed:  26, dir:  1, gap: 28 },
+      { top: '78vh', h: '22vh', tileH: '20vh', speed:  44, dir: -1, gap: 24 },
+    ];
+
+    // Shared "currently visible" set — consulted on every spawn so no image
+    // can appear twice on screen at the same instant, across any band.
+    const visible = new Set();
+    const ratios = {}; // src -> naturalWidth / naturalHeight
+
+    function pickSrc() {
+      const pool = SRCS.filter(s => !visible.has(s));
+      if (!pool.length) return null;
+      return pool[Math.floor(Math.random() * pool.length)];
     }
 
-    function buildTrack(el, srcs) {
-      // Duplicate the sequence so the -50% translate produces a seamless loop.
-      const seq = srcs.concat(srcs);
-      seq.forEach(src => {
-        const img = document.createElement('img');
+    function vhToPx(v) {
+      return parseFloat(v) / 100 * window.innerHeight;
+    }
+
+    function preload() {
+      return Promise.all(SRCS.map(src => new Promise(resolve => {
+        const img = new Image();
+        img.onload  = () => { ratios[src] = img.naturalWidth / img.naturalHeight; resolve(); };
+        img.onerror = () => { ratios[src] = 1.5; resolve(); };
         img.src = src;
-        img.decoding = 'async';
-        img.loading = 'eager';
-        el.appendChild(img);
-      });
+      })));
     }
 
-    // Different shuffle per row so the two bands don't read as mirrored.
-    buildTrack(document.getElementById('track-top'),    shuffled(SRCS));
-    buildTrack(document.getElementById('track-bottom'), shuffled(SRCS));
+    function makeTile(band, src, x) {
+      const h = vhToPx(band.tileH);
+      const w = h * ratios[src];
+      const img = document.createElement('img');
+      img.src = src;
+      img.style.height = h + 'px';
+      img.style.width  = w + 'px';
+      img.style.transform = `translate3d(${x}px, -50%, 0)`;
+      band.el.appendChild(img);
+      return { el: img, src, x, w, h };
+    }
 
-    // Wait until every image has decoded before revealing the page.
-    const all = [...document.querySelectorAll('.track img')];
-    const ready = Promise.all(all.map(img =>
-      img.decode().catch(() => new Promise(res => {
-        img.addEventListener('load',  res, { once: true });
-        img.addEventListener('error', res, { once: true });
-      }))
-    ));
-    ready.then(() => document.body.classList.add('ready'));
-    // Hard safety net so a broken image can't keep the page hidden.
-    setTimeout(() => document.body.classList.add('ready'), 4000);
+    function populate(band) {
+      band.tiles = [];
+      const W = window.innerWidth;
+      // Walk across the band laying tiles until we've covered the viewport
+      // or the pool runs out. Each tile reserves its src in `visible`.
+      let cursor = band.dir === -1 ? W : 0;
+      let safety = 80;
+      while (safety-- > 0) {
+        const src = pickSrc();
+        if (!src) break;
+        const w = vhToPx(band.tileH) * ratios[src];
+        const x = band.dir === -1 ? cursor - w : cursor;
+        if (band.dir === -1 && x + w < 0) break;
+        if (band.dir ===  1 && x > W)      break;
+        const tile = makeTile(band, src, x);
+        band.tiles.push(tile);
+        visible.add(src);
+        cursor = band.dir === -1 ? x - band.gap : x + w + band.gap;
+      }
+    }
+
+    function spawnLeading(band) {
+      const src = pickSrc();
+      if (!src) return; // pool exhausted — leave a gap until something exits
+      const W = window.innerWidth;
+      const w = vhToPx(band.tileH) * ratios[src];
+      const x = band.dir === -1 ? W : -w;
+      band.tiles.push(makeTile(band, src, x));
+      visible.add(src);
+    }
+
+    function needsSpawn(band, W) {
+      if (!band.tiles.length) return true;
+      // Leader = the most recently entered tile (rightmost for RTL, leftmost for LTR).
+      let leader = band.tiles[0];
+      for (const t of band.tiles) {
+        if (band.dir === -1 ? t.x > leader.x : t.x < leader.x) leader = t;
+      }
+      return band.dir === -1
+        ? leader.x + leader.w + band.gap < W
+        : leader.x - band.gap > 0;
+    }
+
+    let last = 0;
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const W = window.innerWidth;
+
+      for (const band of BANDS) {
+        // Advance all tiles.
+        for (const t of band.tiles) {
+          t.x += band.speed * band.dir * dt;
+          t.el.style.transform = `translate3d(${t.x}px, -50%, 0)`;
+        }
+        // Retire tiles that have left the viewport; free their src.
+        band.tiles = band.tiles.filter(t => {
+          const gone = band.dir === -1 ? (t.x + t.w < 0) : (t.x > W);
+          if (gone) { visible.delete(t.src); t.el.remove(); }
+          return !gone;
+        });
+        // Spawn a new tile at the leading edge if there's room.
+        if (needsSpawn(band, W)) spawnLeading(band);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    preload().then(() => {
+      for (const band of BANDS) {
+        const el = document.createElement('div');
+        el.className = 'band';
+        el.style.top    = band.top;
+        el.style.height = band.h;
+        document.body.appendChild(el);
+        band.el = el;
+        populate(band);
+      }
+      document.body.classList.add('ready');
+      requestAnimationFrame(t => { last = t; frame(t); });
+    });
   </script>
 </body>
 </html>
