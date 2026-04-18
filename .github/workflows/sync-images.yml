@@ -1,0 +1,44 @@
+name: Update Manifest
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/**'
+      - 'manifest.json'
+
+permissions:
+  contents: write
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install Pillow
+
+      - name: Update manifest
+        run: python3 scripts/update-manifest.py
+
+      - name: Commit if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add manifest.json
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Auto: update manifest"
+            git push origin main
+          else
+            echo "Manifest already up to date"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

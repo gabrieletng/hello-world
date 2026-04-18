@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- PostHog -->
+  <script type="text/javascript">
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug getPageViewId captureTraceFeedback captureTraceMetric".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_REPLACE_ME', {api_host:'https://eu.i.posthog.com', person_profiles:'identified_only', respect_dnt:true});
+  </script>
+
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wdsri555iv");
+  </script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Collection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #1E1E1E;
+      cursor: grab;
+      user-select: none;
+    }
+    body.dragging { cursor: grabbing; }
+
+    #stage {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    #canvas {
+      position: absolute;
+      top: 0; left: 0;
+      transform-origin: 0 0;
+      /* will-change: transform intentionally omitted — on mobile, promoting
+         a 9000×6700 canvas to a single compositor layer exceeds GPU tile
+         budgets and leaves items in non-rasterized tiles blank until a
+         transform change forces re-tiling. Without will-change the browser
+         rasterizes the layer normally and every item in view paints. */
+    }
+
+    .item {
+      position: absolute;
+      cursor: zoom-in;
+    }
+    .item img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .like-btn {
+      position: absolute;
+      top: 6px; right: 6px;
+      background: rgba(0,0,0,0.5);
+      border: none;
+      border-radius: 50%;
+      width: 28px; height: 28px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+    }
+    .item:hover .like-btn { opacity: 1; pointer-events: auto; }
+
+    .play-badge {
+      position: absolute;
+      bottom: 6px; left: 6px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .play-badge svg { display: block; }
+
+    #lightbox-video {
+      max-width: 92vw;
+      max-height: 75vh;
+      object-fit: contain;
+      background: #000;
+    }
+
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.93);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      overflow-y: auto;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox-close {
+      position: fixed;
+      top: 18px; right: 22px;
+      color: #fff;
+      font-size: 26px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .lightbox-nav {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      padding: 24px 10px;
+      user-select: none;
+      transition: color 0.15s;
+      z-index: 101;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox-nav svg {
+      display: block;
+      width: 32px;
+      height: 32px;
+    }
+    .lightbox-nav:hover { color: #fff; }
+    #lightbox-prev { left: 16px; }
+    #lightbox-next { right: 16px; }
+
+    #lightbox-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 95vw;
+      padding: 40px 20px 40px 20px;
+    }
+    #lightbox-img {
+      max-width: min(92vw, calc(100vw - 170px));
+      max-height: 75vh;
+      object-fit: contain;
+    }
+    #lightbox-auth {
+      position: fixed;
+      top: 18px;
+      left: 22px;
+      z-index: 102;
+      font-size: 12px;
+    }
+    #lightbox-auth button {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #lightbox-auth button:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+    }
+    #auth-user-name {
+      color: rgba(255,255,255,0.8);
+      margin-right: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,0.25);
+      text-underline-offset: 3px;
+      transition: text-decoration-color 0.2s, color 0.2s;
+    }
+    #auth-user-name:hover {
+      color: #fff;
+      text-decoration-color: rgba(255,255,255,0.8);
+    }
+
+    #lightbox-meta {
+      text-align: center;
+      color: #fff;
+      max-width: 600px;
+    }
+    #lightbox-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+      overflow-wrap: anywhere;
+      line-height: 1.15;
+    }
+    #lightbox-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .lightbox-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .lightbox-btn:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+    }
+    .lightbox-like-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+    }
+    .lightbox-like-btn svg { display: block; }
+
+    #lightbox-notes {
+      max-width: 600px;
+      width: 100%;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      padding-top: 20px;
+    }
+    #lightbox-notes-header {
+      color: rgba(255,255,255,0.5);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      margin-bottom: 16px;
+    }
+    #lightbox-notes-list {
+      max-height: 220px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+    .note-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .note-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      flex-shrink: 0;
+    }
+    .note-body { flex: 1; }
+    .note-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+    .note-author {
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+    }
+    .note-time {
+      font-size: 10px;
+      color: rgba(255,255,255,0.4);
+    }
+    .note-delete {
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .note-delete:hover { color: rgba(255,255,255,0.7); }
+    .note-text {
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      word-wrap: break-word;
+      letter-spacing: 0.02em;
+    }
+    #lightbox-notes-message {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    /* Notes input area */
+    #lightbox-notes-input-section {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 14px;
+    }
+    #notes-sign-in-prompt {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #notes-sign-in-btn {
+      flex: 1;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.6);
+      padding: 11px 16px;
+      border-radius: 22px;
+      cursor: pointer;
+      font-size: 13px;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    #notes-sign-in-btn:hover {
+      border-color: rgba(255,255,255,0.5);
+      color: #fff;
+    }
+    #notes-sign-in-btn span {
+      color: rgba(255,255,255,0.35);
+      font-size: 11px;
+      margin-left: 8px;
+    }
+    #notes-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #notes-user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      flex-shrink: 0;
+    }
+    #lightbox-notes-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 8px 0;
+      font-size: 13px;
+      outline: none;
+      letter-spacing: 0.02em;
+    }
+    #lightbox-notes-input:focus {
+      border-bottom-color: rgba(255,255,255,0.5);
+    }
+    #lightbox-notes-input::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+    #lightbox-notes-submit {
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.35);
+      padding: 0;
+      cursor: pointer;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      transition: color 0.2s;
+    }
+    #lightbox-notes-submit.active {
+      color: #fff;
+    }
+
+    @keyframes footerGlow {
+      0%, 100% { opacity: 0.75; }
+      50%      { opacity: 1; }
+    }
+    #hint-glow {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 340px;
+      pointer-events: none;
+      background: radial-gradient(ellipse 75% 100% at 50% 100%,
+                    rgba(255,255,255,0.95) 0%,
+                    rgba(255,255,255,0.65) 18%,
+                    rgba(255,255,255,0.32) 40%,
+                    rgba(255,255,255,0.1) 70%,
+                    rgba(255,255,255,0) 100%);
+      animation: footerGlow 2.4s ease-in-out infinite;
+      transition: opacity 1s;
+      z-index: 5;
+    }
+    #hint {
+      position: fixed;
+      bottom: 32px; left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 20px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 12px 22px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity 1s;
+      z-index: 6;
+    }
+    #hint.hidden, #hint-glow.hidden { opacity: 0; animation: none; }
+
+    #nav-strip {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 56px;
+      background: #0d0d0d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 20;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s;
+    }
+    #nav-strip.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #nav-colophon {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.42);
+      white-space: nowrap;
+      user-select: none;
+    }
+    #nav-strip:hover #nav-colophon { color: rgba(255,255,255,0.55); }
+    #nav-strip:hover { background: #000; }
+    #nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      height: 56px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 15px;
+      line-height: 1;
+      letter-spacing: 0.32em;
+      color: rgba(255,255,255,0.78);
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.25s;
+    }
+    .nav-link:hover { color: #fff; }
+    .nav-link .arrow { margin-right: 10px; }
+    @media (max-width: 460px) {
+      #nav-colophon { display: none; }
+      #nav-strip { justify-content: flex-end; padding: 0 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stage">
+    <div id="canvas"></div>
+  </div>
+
+  <div id="lightbox">
+    <span id="lightbox-close">&#x2715;</span>
+    <span id="lightbox-prev" class="lightbox-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="11,4 7,12 11,20"/></svg></span>
+    <span id="lightbox-next" class="lightbox-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="13,4 17,12 13,20"/></svg></span>
+    <div id="lightbox-container">
+      <div id="lightbox-auth">
+        <button id="auth-sign-in" class="lightbox-btn">Sign In</button>
+        <span id="auth-user-name"></span>
+        <button id="auth-sign-out" class="lightbox-btn">Sign Out</button>
+      </div>
+      <img id="lightbox-img" src="" alt="" />
+      <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata"></video>
+      <div id="lightbox-meta">
+        <div id="lightbox-title"></div>
+        <div id="lightbox-actions">
+          <button id="lightbox-like" class="lightbox-btn lightbox-like-btn"></button>
+          <button id="lightbox-share" class="lightbox-btn">Share</button>
+        </div>
+      </div>
+      <div id="lightbox-notes">
+        <div id="lightbox-notes-header">Notes</div>
+        <div id="lightbox-notes-list"></div>
+        <div id="lightbox-notes-input-section">
+          <div id="notes-sign-in-prompt">
+            <button id="notes-sign-in-btn">Add a note... <span>Sign in →</span></button>
+          </div>
+          <div id="notes-input-row" style="display:none;">
+            <div id="notes-user-avatar"></div>
+            <input id="lightbox-notes-input" type="text" placeholder="Add a note..." maxlength="500" />
+            <button id="lightbox-notes-submit">POST</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="hint-glow"></div>
+  <div id="hint">pan &nbsp;·&nbsp; zoom &nbsp;·&nbsp; open</div>
+
+  <div id="nav-strip">
+    <div id="nav-colophon">THE COLLECTION</div>
+    <div id="nav-actions">
+      <button class="nav-link" id="nav-home"><span class="arrow">&uarr;</span>HOME</button>
+      <button class="nav-link" id="nav-profile">SIGN IN</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { signInGoogle, signOutUser, getCurrentUser, setupAuthStateListener, addLike, removeLike, isImageLiked, addNote, getNotes, deleteNote } from '../js/firebase.js';
+    import { track } from '../js/analytics.js';
+
+    // ── Layout rule ───────────────────────────────────────────────
+    // Each image is assigned a random size, then placed at a random
+    // position. If it overlaps any already-placed image (+ GAP margin),
+    // a new random position is tried. Up to MAX_TRIES attempts per image.
+    // Canvas dimensions are computed from actual content so density stays
+    // consistent regardless of image count or aspect ratios.
+    // Layout is random on every load — no seed.
+
+    const MIN_H    = 70;
+    const MAX_H    = 260;
+    const MAX_W    = 380;
+    const GAP      = 10;       // minimum px between any two images
+    const DENSITY  = 0.46;     // ratio of image area to canvas area (RSA jamming ~50%, stay well under)
+    const MAX_TRIES = 1200;    // rejection attempts per image before giving up
+
+    // ── Pan / zoom ────────────────────────────────────────────────
+    let zoom = 0.45, panX = 0, panY = 0;
+    const MIN_ZOOM = 0.05, MAX_ZOOM = 2.5;
+    const INITIAL_ZOOM = 0.45;           // middle ground: see ~150 items, each at thumb size
+
+    const stage  = document.getElementById('stage');
+    const canvas = document.getElementById('canvas');
+
+    function applyTransform() {
+      canvas.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+    }
+
+    function setInitialView(w, h) {
+      zoom = INITIAL_ZOOM;
+      // Center on a random point inside the canvas so every visit opens on a
+      // different neighborhood.
+      const cx = w * (0.25 + Math.random() * 0.5);
+      const cy = h * (0.25 + Math.random() * 0.5);
+      panX = window.innerWidth / 2  - cx * zoom;
+      panY = window.innerHeight / 2 - cy * zoom;
+      applyTransform();
+    }
+
+    // ── Heart SVG ─────────────────────────────────────────────────
+    const PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
+    function heartSVG(filled, size = 13) {
+      return filled
+        ? `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="#ff4444"><path d="${PATH}"/></svg>`
+        : `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linejoin="round"><path d="${PATH}"/></svg>`;
+    }
+
+    // ── Auth state management ────────────────────────────────────
+    const authSignInBtn = document.getElementById('auth-sign-in');
+    const authUserName = document.getElementById('auth-user-name');
+    const authSignOutBtn = document.getElementById('auth-sign-out');
+
+    function updateAuthUI(user) {
+      if (user) {
+        authSignInBtn.style.display = 'none';
+        authUserName.textContent = user.displayName || user.email || 'User';
+        authUserName.style.display = 'inline';
+        authSignOutBtn.style.display = 'inline';
+      } else {
+        authSignInBtn.style.display = 'inline';
+        authUserName.style.display = 'none';
+        authSignOutBtn.style.display = 'none';
+      }
+      updateNotesInputSection();
+    }
+
+    function updateNavAuth(user) {
+      navProfile.textContent = user ? 'PROFILE' : 'SIGN IN';
+    }
+
+    setupAuthStateListener(user => { updateAuthUI(user); updateNavAuth(user); });
+
+    authSignInBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      try {
+        await signInGoogle();
+      } catch (error) {
+        console.error('Sign-in failed:', error);
+      }
+    });
+
+    authSignOutBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      try {
+        await signOutUser();
+      } catch (error) {
+        console.error('Sign-out failed:', error);
+      }
+    });
+
+    authUserName.title = 'View your profile';
+    authUserName.addEventListener('click', e => {
+      e.stopPropagation();
+      window.location.href = '../profile/';
+    });
+
+    // Notes sign-in prompt — sets ?image= URL first so user returns to same image after OAuth
+    document.getElementById('notes-sign-in-btn').addEventListener('click', async e => {
+      e.stopPropagation();
+      if (currentEntry) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('image', currentEntry.file);
+        window.history.replaceState({ image: currentEntry.file }, '', url.toString());
+      }
+      try {
+        await signInGoogle();
+      } catch (error) {
+        console.error('Sign-in failed:', error);
+      }
+    });
+
+    // ── Auto-open image from URL ───────────────────────────────────
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoOpenImageFile = urlParams.get('image');
+
+    // ── Build layout ──────────────────────────────────────────────
+    fetch('../manifest.json')
+      .then(r => r.json())
+      .then(manifest => {
+
+        // 1. Aspect ratios come from manifest w/h — no image downloads needed
+        //    to compute layout. Entries missing dimensions fall back to 1:1.
+        const imageData = manifest.map(entry => {
+          const asp = (entry.w && entry.h) ? entry.w / entry.h : 1;
+          let h = MIN_H + Math.random() * (MAX_H - MIN_H);
+          let w = h * asp;
+          if (w > MAX_W) { w = MAX_W; h = w / asp; }
+          return { w: Math.round(w), h: Math.round(h), entry };
+        });
+
+        // 2. Shuffle, then sort largest-first so big images claim space when canvas is emptiest.
+        // Positions are still fully random; only placement sequence changes.
+        for (let i = imageData.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [imageData[i], imageData[j]] = [imageData[j], imageData[i]];
+        }
+        imageData.sort((a, b) => b.w * b.h - a.w * a.h);
+
+        // 3. Canvas size derived from actual image areas + target density
+        const totalArea = imageData.reduce((s, d) => s + d.w * d.h, 0);
+        const canvasArea = totalArea / DENSITY;
+        const CW = Math.ceil(Math.sqrt(canvasArea * 1.35));  // slightly wider than tall
+        const CH = Math.ceil(Math.sqrt(canvasArea / 1.35));
+
+        canvas.style.width  = CW + 'px';
+        canvas.style.height = CH + 'px';
+
+        // 4. Place each image: random position, reject if overlapping
+        const placed = [];
+
+        for (const d of imageData) {
+          let x = 0, y = 0, ok = false;
+
+          for (let t = 0; t < MAX_TRIES; t++) {
+            x = GAP + Math.random() * Math.max(1, CW - d.w - GAP * 2);
+            y = GAP + Math.random() * Math.max(1, CH - d.h - GAP * 2);
+
+            ok = true;
+            for (const p of placed) {
+              if (x           < p.x + p.w + GAP &&
+                  x + d.w + GAP > p.x           &&
+                  y           < p.y + p.h + GAP &&
+                  y + d.h + GAP > p.y) {
+                ok = false;
+                break;
+              }
+            }
+            if (ok) break;
+          }
+
+          placed.push({ x: Math.round(x), y: Math.round(y), ...d });
+        }
+
+        // 5. Build DOM shells (no <img> yet — viewport culling attaches them)
+        const frag = document.createDocumentFragment();
+        for (const p of placed) {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;
+
+          // Eager-fetch thumbs. Tried loading="lazy" and a custom
+          // touchmove-driven reveal; both left in-view items blank on mobile
+          // (Safari's lazy heuristic skips small-visual items when zoomed out,
+          // and touchmove reveal misses the final pan state). The whole thumb
+          // set is ~27 MB across 909 files — the browser's concurrency limit
+          // spreads it out, and decode only happens for items actually on
+          // screen.
+          const img = document.createElement('img');
+          img.draggable = false;
+          img.decoding = 'async';
+          img.src = `../${p.entry.file.replace('images/', 'images/thumbs/')}`;
+          item.appendChild(img);
+
+          const likeBtn = document.createElement('button');
+          likeBtn.className = 'like-btn';
+          likeBtn.innerHTML = heartSVG(false);
+          likeBtn.addEventListener('click', async e => {
+            e.stopPropagation();
+            const user = getCurrentUser();
+            if (!user) {
+              authSignInBtn.click();
+              return;
+            }
+            const isLiked = likeBtn.classList.contains('liked');
+            try {
+              if (isLiked) {
+                await removeLike(p.entry.file);
+              } else {
+                await addLike(p.entry.file);
+              }
+              likeBtn.classList.toggle('liked');
+              likeBtn.innerHTML = heartSVG(likeBtn.classList.contains('liked'));
+            } catch (error) {
+              console.error('Like toggle failed:', error);
+            }
+          });
+          item.appendChild(likeBtn);
+
+          if (p.entry.video) {
+            const badge = document.createElement('div');
+            badge.className = 'play-badge';
+            badge.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="#fff"><path d="M8 5v14l11-7z"/></svg>';
+            item.appendChild(badge);
+          }
+
+          item.addEventListener('click', () => {
+            if (!didDrag) openLightbox(p.entry);
+          });
+
+          frag.appendChild(item);
+        }
+        canvas.appendChild(frag);
+
+        placedEntries = placed.map(p => p.entry);
+
+        setInitialView(CW, CH);
+
+        // Auto-open if image parameter was in URL (must happen in promise chain)
+        if (autoOpenImageFile) {
+          const foundEntry = placed.find(p => p.entry.file === autoOpenImageFile);
+          if (foundEntry) {
+            // Schedule open after this callback completes (so openLightbox is defined)
+            setTimeout(() => openLightbox(foundEntry.entry), 100);
+          }
+        }
+
+      });
+
+    // ── Zoom on scroll ────────────────────────────────────────────
+    stage.addEventListener('wheel', e => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.1 : 0.91;
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor));
+      const rect = stage.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      panX = cx - (cx - panX) * (newZoom / zoom);
+      panY = cy - (cy - panY) * (newZoom / zoom);
+      zoom = newZoom;
+      applyTransform();
+      dismissHint();
+    }, { passive: false });
+
+    // ── Pan on drag (with kinetic inertia) ───────────────────────
+    const COAST_HALF = 0.38;  // seconds for velocity to halve after release
+    const COAST_MIN  = 1.5;   // px/s below which coast stops
+
+    let dragging = false, didDrag = false;
+    let dragStartX, dragStartY, panStartX, panStartY;
+    let velX = 0, velY = 0, prevX, prevY, prevT;
+    let coastRaf = null;
+
+    function stopCoast() { if (coastRaf) { cancelAnimationFrame(coastRaf); coastRaf = null; } }
+
+    function launchCoast() {
+      stopCoast();
+      let lastT = performance.now();
+      function coast(now) {
+        const dt = Math.min(0.05, (now - lastT) / 1000);
+        lastT = now;
+        const decay = Math.pow(0.5, dt / COAST_HALF);
+        velX *= decay; velY *= decay;
+        if (Math.abs(velX) < COAST_MIN && Math.abs(velY) < COAST_MIN) { coastRaf = null; return; }
+        panX += velX * dt; panY += velY * dt;
+        applyTransform();
+        coastRaf = requestAnimationFrame(coast);
+      }
+      coastRaf = requestAnimationFrame(coast);
+    }
+
+    stage.addEventListener('mousedown', e => {
+      stopCoast();
+      dragging = true; didDrag = false;
+      dragStartX = e.clientX; dragStartY = e.clientY;
+      panStartX = panX; panStartY = panY;
+      prevX = e.clientX; prevY = e.clientY; prevT = performance.now();
+      velX = 0; velY = 0;
+      document.body.classList.add('dragging');
+    });
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
+      if (Math.abs(dx) + Math.abs(dy) > 4) didDrag = true;
+      panX = panStartX + dx; panY = panStartY + dy;
+      applyTransform(); dismissHint();
+      const now = performance.now(), dt = (now - prevT) / 1000;
+      if (dt > 0.004) {
+        velX = (e.clientX - prevX) / dt; velY = (e.clientY - prevY) / dt;
+        prevX = e.clientX; prevY = e.clientY; prevT = now;
+      }
+    });
+    window.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      document.body.classList.remove('dragging');
+      if (Math.abs(velX) > COAST_MIN || Math.abs(velY) > COAST_MIN) launchCoast();
+    });
+
+    // Touch
+    let lastTX, lastTY, lastPinch = null;
+    let tVelX = 0, tVelY = 0, tPrevX, tPrevY, tPrevT;
+    stage.addEventListener('touchstart', e => {
+      stopCoast();
+      if (e.touches.length === 1) {
+        lastTX = tPrevX = e.touches[0].clientX;
+        lastTY = tPrevY = e.touches[0].clientY;
+        tPrevT = performance.now();
+        tVelX = 0; tVelY = 0; didDrag = false;
+      }
+      if (e.touches.length === 2) lastPinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }, { passive: true });
+    stage.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const dx = e.touches[0].clientX - lastTX, dy = e.touches[0].clientY - lastTY;
+        if (Math.abs(dx) + Math.abs(dy) > 4) didDrag = true;
+        panX += dx; panY += dy;
+        lastTX = e.touches[0].clientX; lastTY = e.touches[0].clientY;
+        applyTransform();
+        const now = performance.now(), dt = (now - tPrevT) / 1000;
+        if (dt > 0.004) {
+          tVelX = (e.touches[0].clientX - tPrevX) / dt;
+          tVelY = (e.touches[0].clientY - tPrevY) / dt;
+          tPrevX = e.touches[0].clientX; tPrevY = e.touches[0].clientY; tPrevT = now;
+        }
+      }
+      if (e.touches.length === 2 && lastPinch) {
+        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const nz = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * dist / lastPinch));
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        panX = cx - (cx - panX) * (nz / zoom);
+        panY = cy - (cy - panY) * (nz / zoom);
+        zoom = nz; lastPinch = dist;
+        applyTransform();
+      }
+      dismissHint();
+    }, { passive: false });
+    stage.addEventListener('touchend', e => {
+      lastPinch = null;
+      if (e.touches.length === 0) {
+        velX = tVelX; velY = tVelY;
+        if (Math.abs(velX) > COAST_MIN || Math.abs(velY) > COAST_MIN) launchCoast();
+      }
+    });
+
+    // ── Lightbox ──────────────────────────────────────────────────
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxVideo = document.getElementById('lightbox-video');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxLikeBtn = document.getElementById('lightbox-like');
+    function renderLightboxHeart() {
+      lightboxLikeBtn.innerHTML = heartSVG(lightboxLikeBtn.classList.contains('liked'), 18);
+    }
+    renderLightboxHeart();
+    const lightboxShareBtn = document.getElementById('lightbox-share');
+    const lightboxNotesList = document.getElementById('lightbox-notes-list');
+    const lightboxNotesInput = document.getElementById('lightbox-notes-input');
+    const lightboxNotesSubmit = document.getElementById('lightbox-notes-submit');
+    let currentEntry = null;
+    let currentIndex = -1;
+    let placedEntries = [];
+
+    async function loadNotes() {
+      if (!currentEntry) return;
+      try {
+        const notes = await getNotes(currentEntry.file);
+        lightboxNotesList.innerHTML = '';
+        if (notes.length === 0) {
+          lightboxNotesList.innerHTML = '<div id="lightbox-notes-message">No notes yet. Be the first to add one!</div>';
+          return;
+        }
+        for (const note of notes) {
+          const noteEl = document.createElement('div');
+          noteEl.className = 'note-item';
+          const timeStr = formatTime(note.createdAt);
+          const user = getCurrentUser();
+          const isOwner = user && user.uid === note.userId;
+          const initials = (note.displayName || 'U').charAt(0).toUpperCase();
+          noteEl.innerHTML = `
+            <div class="note-avatar">${initials}</div>
+            <div class="note-body">
+              <div class="note-meta">
+                <span class="note-author">${escapeHtml(note.displayName || 'Anonymous')}</span>
+                <span class="note-time">${timeStr}</span>
+                ${isOwner ? `<span class="note-delete" data-note-id="${note.id}">×</span>` : ''}
+              </div>
+              <div class="note-text">${escapeHtml(note.text)}</div>
+            </div>`;
+          if (isOwner) {
+            noteEl.querySelector('.note-delete').addEventListener('click', async e => {
+              e.stopPropagation();
+              try {
+                await deleteNote(note.id);
+                await loadNotes();
+              } catch (error) {
+                console.error('Delete note failed:', error);
+              }
+            });
+          }
+          lightboxNotesList.appendChild(noteEl);
+        }
+      } catch (error) {
+        console.error('Load notes failed:', error);
+        lightboxNotesList.innerHTML = '<div id="lightbox-notes-message">Error loading notes</div>';
+      }
+    }
+
+    function formatTime(date) {
+      const now = new Date();
+      const diff = now - date;
+      const mins = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function updateNotesInputSection() {
+      const user = getCurrentUser();
+      const signInPrompt = document.getElementById('notes-sign-in-prompt');
+      const inputRow = document.getElementById('notes-input-row');
+      const userAvatar = document.getElementById('notes-user-avatar');
+      if (user) {
+        signInPrompt.style.display = 'none';
+        inputRow.style.display = 'flex';
+        const name = user.displayName || user.email || 'U';
+        userAvatar.textContent = name.charAt(0).toUpperCase();
+      } else {
+        signInPrompt.style.display = 'flex';
+        inputRow.style.display = 'none';
+      }
+    }
+
+    async function openLightbox(entry) {
+      currentEntry = entry;
+      currentIndex = placedEntries.indexOf(entry);
+      const filename = (entry.video || entry.file).split('/').pop();
+      if (entry.video) {
+        lightboxImg.style.display = 'none';
+        lightboxImg.src = '';
+        lightboxVideo.style.display = 'block';
+        lightboxVideo.src = `../${entry.video}`;
+        lightboxVideo.poster = `../${entry.file}`;
+        lightboxVideo.load();
+        lightboxVideo.play().catch(() => {});
+      } else {
+        lightboxVideo.style.display = 'none';
+        lightboxVideo.pause();
+        lightboxVideo.removeAttribute('src');
+        lightboxVideo.load();
+        lightboxImg.style.display = 'block';
+        lightboxImg.src = `../${entry.file}`;
+        lightboxImg.alt = filename;
+      }
+      lightboxTitle.textContent = filename;
+
+      const user = getCurrentUser();
+      lightboxLikeBtn.classList.remove('liked');
+      if (user) {
+        try {
+          const liked = await isImageLiked(entry.file);
+          if (liked) lightboxLikeBtn.classList.add('liked');
+        } catch (error) {
+          console.error('Check like status failed:', error);
+        }
+      }
+      renderLightboxHeart();
+
+      lightboxNotesInput.value = '';
+      lightboxNotesSubmit.classList.remove('active');
+      await loadNotes();
+      updateNotesInputSection();
+
+      // Push image URL into browser history so sharing / back-button works
+      const url = new URL(window.location.href);
+      url.searchParams.set('image', entry.file);
+      window.history.pushState({ image: entry.file }, '', url.toString());
+
+      lightbox.classList.add('open');
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      lightboxImg.src = '';
+      lightboxVideo.pause();
+      lightboxVideo.removeAttribute('src');
+      lightboxVideo.load();
+      currentEntry = null;
+      // Remove image param from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('image');
+      window.history.pushState({}, '', url.toString());
+    }
+
+    lightboxLikeBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const user = getCurrentUser();
+      if (!user) {
+        authSignInBtn.click();
+        return;
+      }
+      if (!currentEntry) return;
+      const isLiked = lightboxLikeBtn.classList.contains('liked');
+      try {
+        if (isLiked) {
+          await removeLike(currentEntry.file);
+        } else {
+          await addLike(currentEntry.file);
+        }
+        lightboxLikeBtn.classList.toggle('liked');
+        renderLightboxHeart();
+      } catch (error) {
+        console.error('Like toggle failed:', error);
+      }
+    });
+
+    lightboxShareBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!currentEntry) return;
+      const stem = currentEntry.file.split('/').pop().replace(/\.webp$/, '');
+      const url = new URL(`share/${stem}.html`, window.location.href).href;
+      const text = `${currentEntry.title || 'Image'} – A Story of Love and Death`;
+      const user = getCurrentUser();
+      track('image_shared', {
+        userId: user?.uid || null,
+        displayName: user?.displayName || 'anonymous',
+        imageFile: currentEntry.file,
+        method: navigator.share ? 'native' : 'clipboard',
+      });
+      if (navigator.share) {
+        navigator.share({ title: text, url }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(url).catch(() => {});
+      }
+    });
+
+    lightboxNotesSubmit.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!currentEntry || !lightboxNotesInput.value.trim()) return;
+      const user = getCurrentUser();
+      if (!user) {
+        authSignInBtn.click();
+        return;
+      }
+      try {
+        await addNote(currentEntry.file, lightboxNotesInput.value);
+        lightboxNotesInput.value = '';
+        lightboxNotesSubmit.classList.remove('active');
+        await loadNotes();
+      } catch (error) {
+        console.error('Add note failed:', error);
+        alert('Failed to add note: ' + error.message);
+      }
+    });
+
+    lightboxNotesInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        lightboxNotesSubmit.click();
+      }
+    });
+
+    lightboxNotesInput.addEventListener('input', () => {
+      lightboxNotesSubmit.classList.toggle('active', lightboxNotesInput.value.trim().length > 0);
+    });
+
+    function navigate(dir) {
+      if (!placedEntries.length || currentIndex < 0) return;
+      currentIndex = (currentIndex + dir + placedEntries.length) % placedEntries.length;
+      openLightbox(placedEntries[currentIndex]);
+    }
+
+    document.getElementById('lightbox-prev').addEventListener('click', e => { e.stopPropagation(); navigate(-1); });
+    document.getElementById('lightbox-next').addEventListener('click', e => { e.stopPropagation(); navigate(1); });
+
+    lightbox.addEventListener('click', e => { if (e.target === lightbox || e.target.parentElement === lightbox) closeLightbox(); });
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', e => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'ArrowLeft') navigate(-1);
+      else if (e.key === 'ArrowRight') navigate(1);
+    });
+
+    // ── Hint ──────────────────────────────────────────────────────
+    const hint = document.getElementById('hint');
+    const hintGlow = document.getElementById('hint-glow');
+    function hideHint() { hint.classList.add('hidden'); hintGlow.classList.add('hidden'); }
+    let hintTimer = setTimeout(hideHint, 4000);
+    function dismissHint() { clearTimeout(hintTimer); hideHint(); }
+
+    // ── Nav strip (home + profile) ───────────────────────────────
+    const navStrip = document.getElementById('nav-strip');
+    const navHome = document.getElementById('nav-home');
+    const navProfile = document.getElementById('nav-profile');
+
+    let navTimer = null;
+    function showNav() {
+      navStrip.classList.add('visible');
+      clearTimeout(navTimer);
+      navTimer = setTimeout(() => navStrip.classList.remove('visible'), 3000);
+    }
+
+    window.addEventListener('mousemove', showNav);
+    window.addEventListener('wheel', showNav, { passive: true });
+    window.addEventListener('mousedown', showNav);
+    window.addEventListener('touchstart', showNav, { passive: true });
+    window.addEventListener('touchmove', showNav, { passive: true });
+
+    // On first load, linger longer so the nav is discoverable.
+    navStrip.classList.add('visible');
+    navTimer = setTimeout(() => navStrip.classList.remove('visible'), 10000);
+
+    navHome.addEventListener('click', e => {
+      e.stopPropagation();
+      window.location.href = '../';
+    });
+
+    navProfile.addEventListener('click', async e => {
+      e.stopPropagation();
+      const user = getCurrentUser();
+      if (user) {
+        window.location.href = '../profile/';
+      } else {
+        try { await signInGoogle(); } catch (err) { console.error(err); }
+      }
+    });
+  </script>
+</body>
+</html>
