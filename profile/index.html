@@ -3,108 +3,230 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile - Collection</title>
+  <title>Profile · A Story of Love and Death</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
       width: 100%;
-      height: 100%;
+      min-height: 100%;
       background: #1E1E1E;
       color: #fff;
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
+    body { min-height: 100vh; }
 
-    body.loading { display: flex; align-items: center; justify-content: center; }
-    #loading { text-align: center; }
-    #loading h1 { font-size: 24px; margin-bottom: 16px; }
+    a { color: inherit; text-decoration: none; }
 
-    #container {
-      width: 100%;
+    /* ── State visibility ── */
+    #loading, #signed-out, #signed-in { display: none; }
+    body[data-state="loading"] #loading { display: flex; }
+    body[data-state="signed-out"] #signed-out { display: flex; }
+    body[data-state="signed-in"] #signed-in { display: block; }
+
+    /* ── Loading ── */
+    #loading, #signed-out {
       min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
       padding: 40px 20px;
-      display: none;
+      text-align: center;
     }
-    #container.ready { display: block; }
+    #loading-text {
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    /* ── Signed-out ── */
+    #signed-out h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 44px;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+    #signed-out p {
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+      max-width: 380px;
+      line-height: 1.55;
+      margin-bottom: 32px;
+    }
+    .g-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      color: #1a1a1a;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .g-btn:hover { transform: translateY(-1px); }
+    .g-btn:disabled { opacity: 0.6; cursor: wait; }
+    .g-btn svg { width: 18px; height: 18px; }
+    #signed-out .back {
+      margin-top: 28px;
+      color: rgba(255,255,255,0.4);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    #signed-out .back:hover { color: rgba(255,255,255,0.8); }
+
+    /* ── Signed-in ── */
+    #signed-in {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
 
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 40px;
-      border-bottom: 1px solid rgba(255,255,255,0.15);
-      padding-bottom: 20px;
+      gap: 16px;
+      margin-bottom: 44px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
     }
-    h1 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 32px;
-      letter-spacing: 0.08em;
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
     }
-    header button {
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
       background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: #fff;
-      padding: 10px 16px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: rgba(255,255,255,0.7);
+      overflow: hidden;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .user-text { min-width: 0; }
+    .user-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .user-email {
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+      margin-top: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .ghost-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.8);
+      padding: 9px 14px;
       border-radius: 4px;
       cursor: pointer;
-      font-family: system-ui, sans-serif;
-      font-size: 14px;
+      font-size: 12px;
+      letter-spacing: 0.06em;
       transition: all 0.2s;
     }
-    header button:hover {
-      background: rgba(255,255,255,0.25);
+    .ghost-btn:hover {
+      background: rgba(255,255,255,0.08);
       border-color: rgba(255,255,255,0.5);
+      color: #fff;
     }
 
-    section {
-      margin-bottom: 60px;
+    section { margin-bottom: 56px; }
+    section:last-child { margin-bottom: 0; }
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 18px;
     }
-    section h2 {
-      font-size: 20px;
-      margin-bottom: 20px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: rgba(255,255,255,0.8);
+    .section-head h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 0.1em;
+    }
+    .section-head .count {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.1em;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
     }
-
     .grid-item {
       position: relative;
       aspect-ratio: 1;
       overflow: hidden;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .grid-item:hover {
-      transform: scale(1.05);
+      background: rgba(255,255,255,0.04);
     }
     .grid-item img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+    .grid-item:hover img { transform: scale(1.04); }
+    .grid-item .play-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
     }
 
     .empty {
-      text-align: center;
-      color: rgba(255,255,255,0.5);
-      padding: 40px 20px;
-      font-size: 14px;
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+      padding: 28px 0;
+      letter-spacing: 0.04em;
     }
 
+    /* ── Lightbox ── */
     #lightbox {
       display: none;
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.93);
       z-index: 100;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       cursor: zoom-out;
       overflow-y: auto;
@@ -112,209 +234,286 @@
     #lightbox.open { display: flex; }
     #lightbox-close {
       position: fixed;
-      top: 18px; right: 22px;
+      top: 16px;
+      right: 20px;
       color: #fff;
       font-size: 26px;
       cursor: pointer;
       line-height: 1;
+      z-index: 110;
     }
-
     #lightbox-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
+      gap: 18px;
       max-width: 95vw;
-      padding: 40px 20px 40px 20px;
+      padding: 56px 20px 40px;
+      cursor: default;
     }
-    #lightbox-img {
+    #lightbox-img, #lightbox-video {
       max-width: 92vw;
-      max-height: 75vh;
+      max-height: 78vh;
       object-fit: contain;
     }
-    #lightbox-meta {
-      text-align: center;
-      color: #fff;
-      max-width: 600px;
-    }
+    #lightbox-video { background: #000; }
     #lightbox-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px;
+      font-size: 22px;
       letter-spacing: 0.08em;
-      margin-bottom: 8px;
-    }
-    #lightbox-date {
-      font-size: 12px;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 16px;
+      color: rgba(255,255,255,0.85);
     }
   </style>
 </head>
-<body class="loading">
+<body data-state="loading">
+
   <div id="loading">
-    <h1>Loading profile...</h1>
+    <div id="loading-text">Loading profile…</div>
   </div>
 
-  <div id="container">
+  <div id="signed-out">
+    <h1>Your Collection</h1>
+    <p>Sign in with Google to see the images you've liked and the notes you've left.</p>
+    <button id="sign-in-btn" class="g-btn">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.31 9.14 5.38 12 5.38z"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <a href="../explore/grid.html" class="back">← Back to the collection</a>
+  </div>
+
+  <div id="signed-in">
     <header>
-      <h1>My Collection</h1>
-      <button id="sign-out">Sign Out</button>
+      <div class="user">
+        <div class="avatar" id="avatar">?</div>
+        <div class="user-text">
+          <div class="user-name" id="user-name">—</div>
+          <div class="user-email" id="user-email"></div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="../explore/grid.html" class="ghost-btn">Collection</a>
+        <button id="sign-out-btn" class="ghost-btn">Sign out</button>
+      </div>
     </header>
 
     <section>
-      <h2>Liked Images</h2>
+      <div class="section-head">
+        <h2>Liked</h2>
+        <span class="count" id="liked-count"></span>
+      </div>
       <div id="liked-grid" class="grid"></div>
-      <div id="liked-empty" class="empty" style="display: none;">No liked images yet</div>
+      <div id="liked-empty" class="empty" style="display:none;">No likes yet — tap the heart on any image.</div>
     </section>
 
     <section>
-      <h2>Commented Images</h2>
-      <div id="commented-grid" class="grid"></div>
-      <div id="commented-empty" class="empty" style="display: none;">No commented images yet</div>
+      <div class="section-head">
+        <h2>Noted</h2>
+        <span class="count" id="noted-count"></span>
+      </div>
+      <div id="noted-grid" class="grid"></div>
+      <div id="noted-empty" class="empty" style="display:none;">No notes yet — write one from any image.</div>
     </section>
   </div>
 
   <div id="lightbox">
     <span id="lightbox-close">&#x2715;</span>
-    <div id="lightbox-container">
-      <img id="lightbox-img" src="" alt="" />
-      <div id="lightbox-meta">
-        <div id="lightbox-title"></div>
-        <div id="lightbox-date"></div>
-      </div>
+    <div id="lightbox-container" onclick="event.stopPropagation()">
+      <img id="lightbox-img" src="" alt="" style="display:none;" />
+      <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata"></video>
+      <div id="lightbox-title"></div>
     </div>
   </div>
 
   <script type="module">
-    import { getCurrentUser, setupAuthStateListener, getUserLikedImages, getUserCommentedImages, signOutUser } from '../js/firebase.js';
-    import { default as ManifestFetch } from '../js/firebase.js';
+    import {
+      signInGoogle,
+      signOutUser,
+      setupAuthStateListener,
+      getUserLikedImages,
+      getUserCommentedImages
+    } from '../js/firebase.js';
 
-    fetch('../manifest.json')
+    const body = document.body;
+    const setState = s => body.dataset.state = s;
+
+    const PLAY_ICON = '<svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="6,4 20,12 6,20"/></svg>';
+
+    // ── Manifest ──
+    const manifestPromise = fetch('../manifest.json')
       .then(r => r.json())
-      .then(manifest => {
-        // Create a map of file paths to manifest entries for quick lookup
-        const manifestMap = {};
-        for (const entry of manifest) {
-          manifestMap[entry.file] = entry;
-        }
-        window.manifestMap = manifestMap;
+      .then(list => {
+        const map = new Map();
+        for (const e of list) map.set(e.file, e);
+        return map;
+      })
+      .catch(err => {
+        console.error('Manifest load failed:', err);
+        return new Map();
       });
 
-    let currentUser = null;
+    // ── Sign-in / sign-out buttons ──
+    const signInBtn = document.getElementById('sign-in-btn');
+    const signOutBtn = document.getElementById('sign-out-btn');
 
-    setupAuthStateListener(async (user) => {
-      currentUser = user;
+    signInBtn.addEventListener('click', async () => {
+      signInBtn.disabled = true;
+      try {
+        await signInGoogle();
+      } catch (err) {
+        console.error('Sign-in failed:', err);
+        signInBtn.disabled = false;
+      }
+    });
+
+    signOutBtn.addEventListener('click', async () => {
+      try { await signOutUser(); }
+      catch (err) { console.error('Sign-out failed:', err); }
+    });
+
+    // ── Auth state drives the whole page ──
+    setupAuthStateListener(async user => {
       if (!user) {
-        // Redirect to grid page if not logged in
-        window.location.href = '/explore/grid.html';
+        setState('signed-out');
+        signInBtn.disabled = false;
         return;
       }
 
-      // Load user's liked and commented images
-      try {
-        const likedImages = await getUserLikedImages();
-        const commentedImages = await getUserCommentedImages();
+      renderUser(user);
+      setState('signed-in');
 
-        displayLikedImages(likedImages);
-        displayCommentedImages(commentedImages);
+      const manifestMap = await manifestPromise;
 
-        // Show container when loaded
-        document.getElementById('container').classList.add('ready');
-        document.body.classList.remove('loading');
-      } catch (error) {
-        console.error('Error loading profile:', error);
-        document.body.classList.remove('loading');
-      }
+      const [liked, noted] = await Promise.all([
+        getUserLikedImages().catch(err => { console.error(err); return []; }),
+        getUserCommentedImages().catch(err => { console.error(err); return []; })
+      ]);
+
+      renderGrid({
+        gridEl: document.getElementById('liked-grid'),
+        emptyEl: document.getElementById('liked-empty'),
+        countEl: document.getElementById('liked-count'),
+        files: liked.map(d => d.imageFile),
+        manifestMap
+      });
+
+      renderGrid({
+        gridEl: document.getElementById('noted-grid'),
+        emptyEl: document.getElementById('noted-empty'),
+        countEl: document.getElementById('noted-count'),
+        files: noted,
+        manifestMap
+      });
     });
 
-    document.getElementById('sign-out').addEventListener('click', async () => {
-      try {
-        await signOutUser();
-      } catch (error) {
-        console.error('Sign out failed:', error);
-      }
-    });
+    function renderUser(user) {
+      const avatar = document.getElementById('avatar');
+      const nameEl = document.getElementById('user-name');
+      const emailEl = document.getElementById('user-email');
 
-    function displayLikedImages(likedDocs) {
-      const grid = document.getElementById('liked-grid');
-      const empty = document.getElementById('liked-empty');
+      const name = user.displayName || user.email?.split('@')[0] || 'You';
+      nameEl.textContent = name;
+      emailEl.textContent = user.email || '';
 
-      if (!likedDocs || likedDocs.length === 0) {
-        grid.style.display = 'none';
-        empty.style.display = 'block';
-        return;
-      }
-
-      grid.innerHTML = '';
-      for (const doc of likedDocs) {
-        const entry = window.manifestMap[doc.imageFile];
-        if (!entry) continue;
-
-        const item = document.createElement('div');
-        item.className = 'grid-item';
+      avatar.innerHTML = '';
+      if (user.photoURL) {
         const img = document.createElement('img');
-        img.src = `../${entry.file}`;
-        img.alt = entry.title || '';
-        item.appendChild(img);
-
-        item.addEventListener('click', () => openLightbox(entry));
-        grid.appendChild(item);
+        img.src = user.photoURL;
+        img.alt = name;
+        img.referrerPolicy = 'no-referrer';
+        avatar.appendChild(img);
+      } else {
+        avatar.textContent = name.charAt(0).toUpperCase();
       }
     }
 
-    function displayCommentedImages(imageFiles) {
-      const grid = document.getElementById('commented-grid');
-      const empty = document.getElementById('commented-empty');
+    function renderGrid({ gridEl, emptyEl, countEl, files, manifestMap }) {
+      gridEl.innerHTML = '';
 
-      if (!imageFiles || imageFiles.length === 0) {
-        grid.style.display = 'none';
-        empty.style.display = 'block';
+      const entries = files
+        .map(f => manifestMap.get(f))
+        .filter(Boolean);
+
+      countEl.textContent = entries.length ? String(entries.length) : '';
+
+      if (entries.length === 0) {
+        gridEl.style.display = 'none';
+        emptyEl.style.display = 'block';
         return;
       }
+      gridEl.style.display = 'grid';
+      emptyEl.style.display = 'none';
 
-      grid.innerHTML = '';
-      for (const file of imageFiles) {
-        const entry = window.manifestMap[file];
-        if (!entry) continue;
-
+      const frag = document.createDocumentFragment();
+      for (const entry of entries) {
         const item = document.createElement('div');
         item.className = 'grid-item';
+
         const img = document.createElement('img');
         img.src = `../${entry.file}`;
-        img.alt = entry.title || '';
+        img.alt = (entry.video || entry.file).split('/').pop();
+        img.loading = 'lazy';
         item.appendChild(img);
 
+        if (entry.video) {
+          const badge = document.createElement('div');
+          badge.className = 'play-badge';
+          badge.innerHTML = PLAY_ICON;
+          item.appendChild(badge);
+        }
+
         item.addEventListener('click', () => openLightbox(entry));
-        grid.appendChild(item);
+        frag.appendChild(item);
       }
+      gridEl.appendChild(frag);
     }
+
+    // ── Lightbox ──
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxVideo = document.getElementById('lightbox-video');
+    const lightboxTitle = document.getElementById('lightbox-title');
 
     function openLightbox(entry) {
-      const lightbox = document.getElementById('lightbox');
-      const img = document.getElementById('lightbox-img');
-      const title = document.getElementById('lightbox-title');
-      const date = document.getElementById('lightbox-date');
-
-      img.src = `../${entry.file}`;
-      img.alt = entry.title || '';
-      title.textContent = entry.title || '';
-      title.style.display = entry.title ? 'block' : 'none';
-      date.textContent = entry.date || '';
-      date.style.display = entry.date ? 'block' : 'none';
-
+      const filename = (entry.video || entry.file).split('/').pop();
+      if (entry.video) {
+        lightboxImg.style.display = 'none';
+        lightboxImg.src = '';
+        lightboxVideo.style.display = 'block';
+        lightboxVideo.src = `../${entry.video}`;
+        lightboxVideo.poster = `../${entry.file}`;
+        lightboxVideo.load();
+        lightboxVideo.play().catch(() => {});
+      } else {
+        lightboxVideo.pause();
+        lightboxVideo.removeAttribute('src');
+        lightboxVideo.load();
+        lightboxVideo.style.display = 'none';
+        lightboxImg.style.display = 'block';
+        lightboxImg.src = `../${entry.file}`;
+        lightboxImg.alt = filename;
+      }
+      lightboxTitle.textContent = entry.title || filename;
       lightbox.classList.add('open');
     }
 
     function closeLightbox() {
-      document.getElementById('lightbox').classList.remove('open');
+      lightbox.classList.remove('open');
+      lightboxVideo.pause();
+      lightboxVideo.removeAttribute('src');
+      lightboxVideo.load();
+      lightboxImg.src = '';
     }
 
-    document.getElementById('lightbox').addEventListener('click', e => {
-      if (e.target.id === 'lightbox') closeLightbox();
+    lightbox.addEventListener('click', e => {
+      if (e.target === lightbox || e.target.id === 'lightbox-close') closeLightbox();
     });
-    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
     });
   </script>
 </body>
