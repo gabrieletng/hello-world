@@ -1123,6 +1123,8 @@
     window.addEventListener('mousemove', showNav);
     window.addEventListener('wheel', showNav, { passive: true });
     window.addEventListener('mousedown', showNav);
+    window.addEventListener('touchstart', showNav, { passive: true });
+    window.addEventListener('touchmove', showNav, { passive: true });
 
     navHome.addEventListener('click', e => {
       e.stopPropagation();
