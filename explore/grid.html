@@ -11,7 +11,7 @@
       width: 100vw;
       height: 100vh;
       overflow: hidden;
-      background: #0d0d0d;
+      background: #404040;
       cursor: grab;
       user-select: none;
     }
@@ -50,7 +50,7 @@
       position: absolute;
       top: 6px;
       right: 6px;
-      background: rgba(0,0,0,0.55);
+      background: rgba(0,0,0,0.5);
       border: none;
       border-radius: 50%;
       width: 28px;
@@ -59,8 +59,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
-      color: #fff;
+      padding: 0;
       opacity: 0;
       transition: opacity 0.15s;
       pointer-events: none;
@@ -69,7 +68,6 @@
       opacity: 1;
       pointer-events: auto;
     }
-    .like-btn.liked { color: #ff4444; }
 
     /* ── Lightbox ──────────────────────────────────────────────── */
     #lightbox {
@@ -130,6 +128,13 @@
   <div id="hint">scroll to zoom &nbsp;·&nbsp; drag to pan</div>
 
   <script>
+    // ── Heart SVG (fuller, rounder shape) ────────────────────────
+    function heartSVG(filled) {
+      return filled
+        ? `<svg viewBox="0 0 24 24" width="13" height="13" fill="#ff4444" xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`
+        : `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+    }
+
     // ── Seeded random (LCG) — same layout every load ──────────────
     function makeRng(seed) {
       let s = seed >>> 0;
@@ -144,9 +149,9 @@
     const CANVAS_H   = 2600;
     const COLS       = 17;
     const ROWS       = 10;
-    const MIN_H      = 100;
-    const MAX_H      = 260;
-    const PADDING    = 12;   // min gap between cell images
+    const MIN_H      = 90;
+    const MAX_H      = 210;
+    const PADDING    = 16;   // guaranteed gap between adjacent images
 
     // ── Pan / zoom state ──────────────────────────────────────────
     let zoom  = 0.4;   // overridden by centerCanvas()
@@ -195,38 +200,53 @@
           const col = idx % COLS;
           const row = Math.floor(idx / COLS) % ROWS;
 
-          // Random position within cell with padding margin
-          const margin = PADDING;
-          const x = col * cellW + margin + rng() * (cellW - margin * 2);
-          const y = row * cellH + margin + rng() * (cellH - margin * 2);
+          // Pre-generate all random values now (seeded, so layout is deterministic)
+          const displayH  = MIN_H + rng() * (MAX_H - MIN_H);
+          const relPosX   = rng(); // 0–1, scaled to safe range after load
+          const relPosY   = rng();
 
-          // Random display height; width will be set after image loads
-          const displayH = MIN_H + rng() * (MAX_H - MIN_H);
+          const maxW = cellW - PADDING * 2;
+          const maxH = cellH - PADDING * 2;
 
           const item = document.createElement('div');
           item.className = 'item';
-          item.style.left   = Math.round(x) + 'px';
-          item.style.top    = Math.round(y) + 'px';
-          item.style.height = Math.round(displayH) + 'px';
-          item.style.width  = Math.round(displayH) + 'px'; // temp square, fixed on load
+          // Start offscreen; final position set after image loads
+          item.style.left = '-9999px';
+          item.style.top  = '-9999px';
 
           const img = document.createElement('img');
-          img.src     = `../${entry.file}`;
-          img.alt     = entry.title || '';
-          img.loading = 'eager';
+          img.src      = `../${entry.file}`;
+          img.alt      = entry.title || '';
+          img.loading  = 'eager';
           img.decoding = 'async';
-          img.onload = () => {
-            // Correct width once aspect ratio is known
-            item.style.width = Math.round(displayH * (img.naturalWidth / img.naturalHeight)) + 'px';
-          };
+
+          function place() {
+            const aspect = img.naturalWidth / img.naturalHeight || 1;
+            let h = displayH;
+            let w = h * aspect;
+            // Clamp so image never exits its cell
+            if (w > maxW) { w = maxW; h = w / aspect; }
+            if (h > maxH) { h = maxH; w = h * aspect; }
+            // Map relPos into the guaranteed-safe zone within the cell
+            const x = col * cellW + PADDING + relPosX * Math.max(0, cellW - PADDING * 2 - w);
+            const y = row * cellH + PADDING + relPosY * Math.max(0, cellH - PADDING * 2 - h);
+            item.style.width  = Math.round(w) + 'px';
+            item.style.height = Math.round(h) + 'px';
+            item.style.left   = Math.round(x) + 'px';
+            item.style.top    = Math.round(y) + 'px';
+          }
+
+          img.onload = place;
+          img.onerror = place; // still place on error so broken images don't block layout
+          if (img.complete && img.naturalWidth) place(); // already cached
 
           const likeBtn = document.createElement('button');
           likeBtn.className = 'like-btn';
-          likeBtn.textContent = '♡';
+          likeBtn.innerHTML = heartSVG(false);
           likeBtn.addEventListener('click', e => {
             e.stopPropagation();
             likeBtn.classList.toggle('liked');
-            likeBtn.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+            likeBtn.innerHTML = heartSVG(likeBtn.classList.contains('liked'));
           });
 
           item.appendChild(img);
