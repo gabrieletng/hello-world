@@ -143,24 +143,50 @@
       trackBot.style.transform = `translateX(${botDisp}px)`;
     }
 
-    // ─── Drag state ──────────────────────────────────────────────────────────
+    // ─── Drag + inertia state ────────────────────────────────────────────────
+    // `spin` is the current rightward extra velocity of the top band (px/s).
+    // After release it decays to 0 with a ~1.2s half-life, at which point
+    // both bands return to their natural auto-scroll speeds. The bottom band
+    // always mirrors: it receives -spin.
+    //
+    //   topDisp rate = -topSpeed + spin
+    //   botDisp rate = +botSpeed - spin
+    //
     let dragging  = false;
     let prevDragX = 0;
-    let grabDir   = 1;  // +1 if top band grabbed, -1 if bottom band grabbed
+    let prevVelX  = 0;   // cursor x for velocity sampling
+    let prevVelT  = 0;   // timestamp for velocity sampling
+    let dragVel   = 0;   // instantaneous px/s of cursor at release
+    let grabDir   = 1;   // +1 top grabbed, -1 bottom grabbed
+    let spin      = 0;   // extra velocity (px/s), decays to 0 after release
+
+    const SPIN_HALF = 1.2; // seconds for spin to halve
 
     function pDown(x, clientY) {
       dragging  = true;
       prevDragX = x;
-      // Which band is being grabbed? Top half of screen → top band, bottom → bottom band.
+      prevVelX  = x;
+      prevVelT  = performance.now();
+      dragVel   = 0;
+      spin      = 0;   // cancel any residual inertia when grabbing
       grabDir   = clientY < window.innerHeight / 2 ? 1 : -1;
       document.body.classList.add('dragging');
     }
 
     function pMove(x) {
       if (!dragging) return;
+      const now   = performance.now();
       const delta = x - prevDragX;
       prevDragX   = x;
-      // Grabbed band follows cursor; other band mirrors in the opposite direction.
+
+      // Sample velocity on a rolling basis to get a stable px/s reading.
+      const velDt = (now - prevVelT) / 1000;
+      if (velDt > 0.004) {
+        dragVel  = (x - prevVelX) / velDt;
+        prevVelX = x;
+        prevVelT = now;
+      }
+
       topDisp += delta * grabDir;
       botDisp -= delta * grabDir;
       wrapTop(); wrapBot();
@@ -170,6 +196,9 @@
     function pUp() {
       if (!dragging) return;
       dragging = false;
+      // Seed inertia from the fling velocity.
+      // spin is always in "rightward of top band" terms.
+      spin = dragVel * grabDir;
       document.body.classList.remove('dragging');
     }
 
@@ -190,8 +219,14 @@
       lastT = now;
 
       if (!dragging) {
-        topDisp -= topSpeed * dt;  // drifts left
-        botDisp += botSpeed * dt;  // drifts right
+        // Decay spin toward 0; when it reaches near-zero, snap it clean.
+        if (spin !== 0) {
+          spin *= Math.pow(0.5, dt / SPIN_HALF);
+          if (Math.abs(spin) < 0.5) spin = 0;
+        }
+        // Natural auto-scroll ± residual inertia.
+        topDisp += (-topSpeed + spin) * dt;
+        botDisp += ( botSpeed - spin) * dt;
         wrapTop(); wrapBot();
         applyTransform();
       }
