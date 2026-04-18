@@ -21,6 +21,8 @@ from PIL import Image
 SKIP_SUFFIXES = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.gif', '.pdf', '.svg'}
 MAX_DIM = 1600
 QUALITY = 82
+THUMB_DIM = 600            # grid-view thumbnail size — full-res still used by lightbox
+THUMB_QUALITY = 78
 
 
 def sanitize(name: str) -> str:
@@ -38,6 +40,19 @@ def convert(src: Path, dest: Path) -> bool:
             img.save(dest, 'WEBP', quality=QUALITY, method=4)
     except Exception as e:
         print(f"  ERROR {src.name}: {e}")
+        return False
+    return True
+
+
+def make_thumb(src: Path, dest: Path) -> bool:
+    try:
+        with Image.open(src) as img:
+            img = img.convert('RGB')
+            img.thumbnail((THUMB_DIM, THUMB_DIM), Image.LANCZOS)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            img.save(dest, 'WEBP', quality=THUMB_QUALITY, method=4)
+    except Exception as e:
+        print(f"  THUMB ERROR {src.name}: {e}")
         return False
     return True
 
@@ -67,7 +82,9 @@ def main():
         return
 
     images_dir = repo_root / 'images'
+    thumbs_dir = images_dir / 'thumbs'
     images_dir.mkdir(exist_ok=True)
+    thumbs_dir.mkdir(exist_ok=True)
 
     # .ethos-manifest.json tracks which webp stems this script owns
     ethos_manifest_path = repo_root / '.ethos-manifest.json'
@@ -81,30 +98,37 @@ def main():
         stem = sanitize(f.stem)
         expected[stem] = f
 
-    # Add new images
+    # Add new images (full-res + thumb)
     added = errors = 0
     for stem, src in expected.items():
         out = images_dir / f"{stem}.webp"
+        thumb = thumbs_dir / f"{stem}.webp"
         if out.exists():
             owned_stems.add(stem)  # claim ownership of pre-existing ethos files
+            if not thumb.exists():
+                make_thumb(out, thumb)     # backfill thumb if someone deleted it
             continue
         print(f"+ {out.name}  ", end='', flush=True)
         if convert(src, out):
             before, after = src.stat().st_size, out.stat().st_size
             print(f"{before // 1024}KB → {after // 1024}KB")
+            make_thumb(out, thumb)
             owned_stems.add(stem)
             added += 1
         else:
             errors += 1
 
-    # Remove only orphans that this script previously created
+    # Remove only orphans that this script previously created (full-res + thumb)
     removed = 0
     for stem in sorted(owned_stems - set(expected.keys())):
         webp = images_dir / f"{stem}.webp"
+        thumb = thumbs_dir / f"{stem}.webp"
         if webp.exists():
             print(f"- {webp.name}")
             webp.unlink()
             removed += 1
+        if thumb.exists():
+            thumb.unlink()
         owned_stems.discard(stem)
 
     # Persist updated ownership list

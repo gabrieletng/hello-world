@@ -450,7 +450,9 @@
           const img = document.createElement('img');
           img.draggable = false;
           img.decoding = 'async';
-          img.src = `../${p.entry.file}`;
+          // Grid uses the smaller thumbnail for fast load + cheap decode.
+          // Lightbox loads the full-res file (see openLightbox).
+          img.src = `../${p.entry.file.replace('images/', 'images/thumbs/')}`;
           p.el.insertBefore(img, p.el.firstChild);
           p.imgEl = img;
         }
@@ -634,6 +636,9 @@
         placedEntries = placed.map(p => p.entry);
 
         setInitialView(CW, CH);
+        // Run the first reveal synchronously so initial imgs appear without
+        // waiting for a rAF tick (helpful in throttled/backgrounded contexts).
+        revealViewport();
 
         // Auto-open if image parameter was in URL (must happen in promise chain)
         if (autoOpenImageFile) {
