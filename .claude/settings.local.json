@@ -34,7 +34,8 @@
       "Bash(python3 scripts/optimize.py /Users/gabrieletangerini/Claude/ethos/)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "mcp__Claude_in_Chrome__navigate",
-      "mcp__Claude_in_Chrome__computer"
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(python3 scripts/install_clarity.py)"
     ]
   }
 }
