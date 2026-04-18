@@ -15,6 +15,53 @@
       background: #fff;
     }
 
+    /* Two marquee bands: one along the top edge, one along the bottom.
+       Leaves a calm center band for the title. Images are never cropped —
+       height is fixed, width follows the natural aspect. */
+    .marquee {
+      position: fixed;
+      left: 0;
+      width: 100vw;
+      height: 34vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+    .marquee.top    { top: 0; }
+    .marquee.bottom { bottom: 0; }
+
+    .track {
+      display: flex;
+      gap: 2.2vw;
+      padding: 0 1.1vw;
+      flex-shrink: 0;
+      will-change: transform;
+    }
+
+    /* The track contains the sequence twice; translating to -50% lands us
+       on the start of the duplicated copy, which is visually identical —
+       so the loop is seamless. */
+    .marquee.top .track    { animation: scroll-left  95s linear infinite; }
+    .marquee.bottom .track { animation: scroll-right 115s linear infinite; }
+
+    @keyframes scroll-left {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    @keyframes scroll-right {
+      from { transform: translateX(-50%); }
+      to   { transform: translateX(0); }
+    }
+
+    .track img {
+      height: 32vh;
+      width: auto;
+      display: block;
+      flex-shrink: 0;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
     #center-text {
       position: fixed;
       top: 50%;
@@ -31,31 +78,15 @@
       pointer-events: none;
     }
 
-    .slot {
-      position: fixed;
-      overflow: hidden;
-      opacity: 0;
-      transform: scale(0.96);
-      transition:
-        opacity   1.8s cubic-bezier(0.22, 1, 0.36, 1),
-        transform 2.0s cubic-bezier(0.22, 1, 0.36, 1);
-      pointer-events: none;
-    }
-
-    .slot.visible {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    .slot img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
+    /* Hold the page white until images have decoded, then fade in together.
+       Prevents any pop-in as the tracks populate. */
+    body { opacity: 0; transition: opacity 1.6s ease; }
+    body.ready { opacity: 1; }
   </style>
 </head>
 <body>
+  <div class="marquee top"><div class="track" id="track-top"></div></div>
+  <div class="marquee bottom"><div class="track" id="track-bottom"></div></div>
   <div id="center-text">THIS IS A STORY OF<br>LOVE AND DEATH</div>
 
   <script>
@@ -74,91 +105,42 @@
       "mark busch.jpg"
     ];
 
-    // Preload so fade-ins never flash.
-    SRCS.forEach(s => { const i = new Image(); i.src = s; });
-
-    // Editorial composition: 8 slots around the center text.
-    // Mixed aspect ratios (portrait / landscape / square) to feel curated
-    // rather than gridded. Center band kept clear for the title.
-    const SLOTS = [
-      { x: 0.030, y: 0.050, w: 0.200, h: 0.300 }, // top-left, portrait
-      { x: 0.415, y: 0.030, w: 0.200, h: 0.180 }, // top-center, landscape
-      { x: 0.775, y: 0.070, w: 0.200, h: 0.240 }, // top-right, landscape
-      { x: 0.020, y: 0.400, w: 0.140, h: 0.260 }, // left-middle, portrait
-      { x: 0.840, y: 0.420, w: 0.140, h: 0.220 }, // right-middle, portrait
-      { x: 0.040, y: 0.720, w: 0.220, h: 0.240 }, // bottom-left, landscape
-      { x: 0.400, y: 0.770, w: 0.200, h: 0.200 }, // bottom-center, square
-      { x: 0.760, y: 0.700, w: 0.200, h: 0.270 }, // bottom-right, portrait
-    ];
-
-    const active = new Map(); // slotIdx -> { src, el }
-
-    const usedSrcs = () => new Set([...active.values()].map(a => a.src));
-
-    function pickSrc() {
-      const used = usedSrcs();
-      const pool = SRCS.filter(s => !used.has(s));
-      return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-    }
-
-    function fillSlot(slotIdx) {
-      if (active.has(slotIdx)) return;
-      const src = pickSrc();
-      if (!src) return;
-
-      const s = SLOTS[slotIdx];
-      const el = document.createElement('div');
-      el.className = 'slot';
-      el.style.left   = (s.x * 100) + '%';
-      el.style.top    = (s.y * 100) + '%';
-      el.style.width  = (s.w * 100) + '%';
-      el.style.height = (s.h * 100) + '%';
-
-      const img = document.createElement('img');
-      img.src = src;
-      el.appendChild(img);
-      document.body.appendChild(el);
-
-      active.set(slotIdx, { src, el });
-
-      const reveal = () => requestAnimationFrame(() =>
-        requestAnimationFrame(() => el.classList.add('visible'))
-      );
-      if (img.complete) reveal();
-      else img.addEventListener('load', reveal, { once: true });
-    }
-
-    function clearSlot(slotIdx) {
-      const a = active.get(slotIdx);
-      if (!a) return;
-      a.el.classList.remove('visible');
-      active.delete(slotIdx);
-      const toRemove = a.el;
-      setTimeout(() => toRemove.remove(), 2200); // after fade-out completes
-    }
-
-    // Initial reveal: one image at a time, in a random order.
-    // Paced so the experience feels like pages being turned.
-    const order = SLOTS.map((_, i) => i).sort(() => Math.random() - 0.5);
-    const FIRST_DELAY = 1100;   // time the title sits alone on white
-    const STEP        = 1100;   // time between successive reveals
-    order.forEach((slotIdx, i) => {
-      setTimeout(() => fillSlot(slotIdx), FIRST_DELAY + i * STEP);
-    });
-
-    // After all slots are filled, drift into a calm cycling rhythm:
-    // one slot at a time fades out, pauses, then another image fades in.
-    const cycleStart = FIRST_DELAY + order.length * STEP + 2500;
-    function cycle() {
-      const filled = [...active.keys()];
-      if (filled.length) {
-        const slotIdx = filled[Math.floor(Math.random() * filled.length)];
-        clearSlot(slotIdx);
-        setTimeout(() => fillSlot(slotIdx), 2400); // fade-out + short breath
+    function shuffled(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
       }
-      setTimeout(cycle, 5500 + Math.random() * 3000); // 5.5–8.5s between swaps
+      return a;
     }
-    setTimeout(cycle, cycleStart);
+
+    function buildTrack(el, srcs) {
+      // Duplicate the sequence so the -50% translate produces a seamless loop.
+      const seq = srcs.concat(srcs);
+      seq.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.decoding = 'async';
+        img.loading = 'eager';
+        el.appendChild(img);
+      });
+    }
+
+    // Different shuffle per row so the two bands don't read as mirrored.
+    buildTrack(document.getElementById('track-top'),    shuffled(SRCS));
+    buildTrack(document.getElementById('track-bottom'), shuffled(SRCS));
+
+    // Wait until every image has decoded before revealing the page.
+    const all = [...document.querySelectorAll('.track img')];
+    const ready = Promise.all(all.map(img =>
+      img.decode().catch(() => new Promise(res => {
+        img.addEventListener('load',  res, { once: true });
+        img.addEventListener('error', res, { once: true });
+      }))
+    ));
+    ready.then(() => document.body.classList.add('ready'));
+    // Hard safety net so a broken image can't keep the page hidden.
+    setTimeout(() => document.body.classList.add('ready'), 4000);
   </script>
 </body>
 </html>
