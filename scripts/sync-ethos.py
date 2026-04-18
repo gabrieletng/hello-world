@@ -2,7 +2,8 @@
 """
 Sync ethos/ source images → images/
 - Compresses new images to WebP
-- Removes WebP files whose source no longer exists in ethos
+- Removes only WebP files that were previously created by this script
+  (tracked in .ethos-manifest.json — manually added images are never touched)
 - Skips videos
 
 Usage:
@@ -13,6 +14,7 @@ Usage:
 import sys
 import re
 import os
+import json
 from pathlib import Path
 from PIL import Image
 
@@ -40,6 +42,16 @@ def convert(src: Path, dest: Path) -> bool:
     return True
 
 
+def load_ethos_manifest(path: Path) -> set:
+    if path.exists():
+        return set(json.loads(path.read_text()))
+    return set()
+
+
+def save_ethos_manifest(path: Path, stems: set):
+    path.write_text(json.dumps(sorted(stems), indent=2) + '\n')
+
+
 def main():
     repo_root = Path(__file__).parent.parent
 
@@ -57,7 +69,11 @@ def main():
     images_dir = repo_root / 'images'
     images_dir.mkdir(exist_ok=True)
 
-    # Build expected webp stems from ethos sources
+    # .ethos-manifest.json tracks which webp stems this script owns
+    ethos_manifest_path = repo_root / '.ethos-manifest.json'
+    owned_stems = load_ethos_manifest(ethos_manifest_path)
+
+    # Build expected webp stems from current ethos sources
     expected: dict[str, Path] = {}
     for f in sorted(ethos_dir.iterdir()):
         if not f.is_file() or f.suffix.lower() in SKIP_SUFFIXES:
@@ -70,22 +86,29 @@ def main():
     for stem, src in expected.items():
         out = images_dir / f"{stem}.webp"
         if out.exists():
+            owned_stems.add(stem)  # claim ownership of pre-existing ethos files
             continue
         print(f"+ {out.name}  ", end='', flush=True)
         if convert(src, out):
             before, after = src.stat().st_size, out.stat().st_size
             print(f"{before // 1024}KB → {after // 1024}KB")
+            owned_stems.add(stem)
             added += 1
         else:
             errors += 1
 
-    # Remove orphaned webps
+    # Remove only orphans that this script previously created
     removed = 0
-    for webp in sorted(images_dir.glob('*.webp')):
-        if webp.stem not in expected:
+    for stem in sorted(owned_stems - set(expected.keys())):
+        webp = images_dir / f"{stem}.webp"
+        if webp.exists():
             print(f"- {webp.name}")
             webp.unlink()
             removed += 1
+        owned_stems.discard(stem)
+
+    # Persist updated ownership list
+    save_ethos_manifest(ethos_manifest_path, owned_stems)
 
     print(f"\nSync done.  Added: {added}  Removed: {removed}  Errors: {errors}")
 
