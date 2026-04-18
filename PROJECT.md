@@ -6,7 +6,7 @@ Live: https://gabrieletng.github.io/hello-world/
 
 ## Concept
 
-A photography collection website. Multiple landing pages act as curated "stories" — each with its own text and 12 images from the main collection. Visitors can also explore the full collection via a grid or carousel. Social layer: cross-device likes and a profile page, via Google sign-in.
+A photography collection website. Multiple landing pages act as curated "stories" — each with its own text and 12 images from the main collection. Visitors can also explore the full collection via a zoomable canvas or carousel. Social layer: cross-device likes and a profile page, via Google sign-in.
 
 ---
 
@@ -18,17 +18,17 @@ A photography collection website. Multiple landing pages act as curated "stories
 ├── landing/
 │   └── [page-name].html   ← additional landing pages
 ├── explore/
-│   ├── grid.html          ← full collection, masonry/irregular layout
+│   ├── grid.html          ← full collection, zoomable/pannable canvas
 │   └── carousel.html      ← full collection, one image at a time
 ├── profile/
 │   └── index.html         ← liked images, requires sign-in
-├── images/                ← full image collection (WebP, ~400px height)
+├── images/                ← full image collection (WebP, max 1600px, quality 82)
 ├── manifest.json          ← source of truth: { file, title, date } per image
 ├── js/
 │   ├── marquee.js         ← shared landing page engine
 │   └── firebase.js        ← shared auth + Firestore module
 └── scripts/
-    └── optimize.sh        ← local: convert new images to WebP before commit
+    └── optimize.py        ← local: convert new images to WebP before commit
 ```
 
 ---
@@ -44,11 +44,14 @@ A photography collection website. Multiple landing pages act as curated "stories
 - Navigation between landing pages and to explore views: TBD (UX/UI task)
 
 ### Grid (`explore/grid.html`)
-- Full collection, irregular masonry layout
-- No image rotation — "curated mess" feel, not chaotic
-- Pan/scroll freely
-- Click image → full-screen lightbox
-- Like button on hover
+- Zoomable/pannable infinite canvas — like a digital mood board
+- **Dark background**
+- Images scattered at varying positions and sizes — no strict columns, no rotation
+- "Scattered papers on the floor" feel, but curated/gallery quality
+- Zoom out → see full collection from above; zoom in → focus on individual images
+- Pan by dragging; zoom by scroll/pinch
+- Like button on hover (not on landing pages)
+- Lightbox on click: full-screen single image view
 
 ### Carousel (`explore/carousel.html`)
 - Full collection, one image at a time, full-bleed
@@ -61,29 +64,50 @@ A photography collection website. Multiple landing pages act as curated "stories
 
 ---
 
+## Design
+
+### Grid canvas
+- Background: near-black (`#0d0d0d` or similar)
+- Images placed with pseudo-random layout: cell-based with jitter to distribute evenly but feel organic
+- Image sizes vary: roughly 80px–280px display height, maintaining aspect ratio
+- No rotation — irregular placement only comes from position and size variation
+- Consistent layout seed so the arrangement is the same on every load
+- Default zoom: shows most/all of collection; zoom range: ~0.05 (full overview) to ~2.0 (detail)
+
+### General aesthetic
+- Clean, minimal UI chrome
+- Typography: Bebas Neue (landing pages); system/clean sans elsewhere
+- Colors: white background on landing pages, dark on grid/explore
+
+---
+
 ## Image Management
 
 ### Collection (`images/`)
-- All images live here: WebP format, ~400px height target
-- Naming: lowercase, hyphen-separated, no spaces or special chars
+- All images: WebP format, max 1600px longest side, quality 82 (via `scripts/optimize.py`)
+- Naming: lowercase, hyphen-separated, no spaces or special chars, `.webp` extension
 - Source of truth: `manifest.json`
 
 ### manifest.json format
 ```json
 [
-  { "file": "images/camdenthrasher.png", "title": "Camden Thrasher", "date": "2024-03-10" },
+  { "file": "images/camdenthrasher.webp", "title": "Camden Thrasher", "date": "2024-03-10" },
   ...
 ]
 ```
-- `title` and `date` drive chronological sort in carousel and metadata display
-- `file` paths work with both local repo and future CDN (just update the path prefix)
+- `title` and `date` drive chronological sort and metadata display
+- File paths work with both local repo and future CDN (update the path prefix only)
+- Many entries currently have `null` title/date — to be filled in over time
 
 ### Storage strategy
-- Stay in GitHub repo while collection is under ~500MB (optimized)
+- Stay in GitHub repo while under ~500MB (currently ~14MB for 170 images)
 - Migrate to Bunny.net CDN when needed — only `manifest.json` file paths change
 
-### Image optimization (before committing new images)
-Run `scripts/optimize.sh` to convert and resize to WebP. TBD.
+### Adding new images
+```bash
+python3 scripts/optimize.py /path/to/new/images/
+# Then update manifest.json with new entries
+```
 
 ---
 
@@ -104,23 +128,25 @@ How users move between:
 - Grid / Carousel
 - Profile
 
-Options to explore:
-- Minimal nav bar or floating menu
-- Gesture/scroll-based transitions between landing pages
-- Entry point: which page is the default `index.html`?
+Open questions:
+- Minimal floating menu vs. gesture-based transitions
+- Entry point: which page is `index.html`?
+- How to cycle between landing pages
 
 ---
 
 ## Development Phases
 
-### Phase 1 — Architecture ✅ (in progress)
-- [x] Move images to `images/`, clean up filenames
-- [ ] Extract `js/marquee.js` shared engine
-- [ ] Refactor `index.html` to use shared module
-- [ ] Create `manifest.json` for current 12 images
+### Phase 1 — Architecture ✅
+- [x] Move images to `images/`, clean filenames
+- [x] Extract `js/marquee.js` shared engine
+- [x] Refactor `index.html` to use shared module
+- [x] Create `manifest.json`
+- [x] `scripts/optimize.py` — batch WebP conversion
 
-### Phase 2 — Full Collection
-- [ ] `explore/grid.html` — irregular masonry, pan/scroll, lightbox
+### Phase 2 — Full Collection (in progress)
+- [x] 170 images compressed and added to collection
+- [ ] `explore/grid.html` — zoomable/pannable canvas ← current
 - [ ] `explore/carousel.html` — random/chronological toggle
 
 ### Phase 3 — Social
@@ -130,7 +156,6 @@ Options to explore:
 - [ ] `profile/index.html`
 
 ### Phase 4 — Image Pipeline
-- [ ] `scripts/optimize.sh` — batch WebP conversion + resize
 - [ ] CDN migration path (update manifest paths only)
 
 ### Ongoing — Navigation UX/UI
