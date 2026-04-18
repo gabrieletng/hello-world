@@ -37,7 +37,10 @@
       "mcp__Claude_in_Chrome__computer",
       "Bash(python3 scripts/install_clarity.py)",
       "Bash(python3 scripts/install_posthog.py)",
-      "Bash(xargs sed *)"
+      "Bash(xargs sed *)",
+      "Bash(git fetch *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)"
     ]
   }
 }
