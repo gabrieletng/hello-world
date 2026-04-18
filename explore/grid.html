@@ -213,6 +213,10 @@
         : `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linejoin="round"><path d="${PATH}"/></svg>`;
     }
 
+    // ── Auto-open image from URL ───────────────────────────────────
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoOpenImageFile = urlParams.get('image');
+
     // ── Build layout ──────────────────────────────────────────────
     fetch('../manifest.json')
       .then(r => r.json())
@@ -304,6 +308,15 @@
         }
 
         fitCanvas(CW, CH);
+
+        // Auto-open if image parameter was in URL (must happen in promise chain)
+        if (autoOpenImageFile) {
+          const foundEntry = placed.find(p => p.entry.file === autoOpenImageFile);
+          if (foundEntry) {
+            // Schedule open after this callback completes (so openLightbox is defined)
+            setTimeout(() => openLightbox(foundEntry.entry), 100);
+          }
+        }
 
       });
 
