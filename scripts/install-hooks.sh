@@ -16,7 +16,7 @@ python3 "$REPO_ROOT/scripts/sync-ethos.py"
 echo "→ updating manifest..."
 python3 "$REPO_ROOT/scripts/update-manifest.py"
 
-git add "$REPO_ROOT/images/" "$REPO_ROOT/manifest.json"
+git -C "$REPO_ROOT" add images/ manifest.json .ethos-manifest.json
 EOF
 
 chmod +x "$HOOK"
