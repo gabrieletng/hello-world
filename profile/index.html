@@ -627,7 +627,7 @@
     <span id="lightbox-close">&#x2715;</span>
     <span id="lightbox-prev" class="lightbox-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="11,4 7,12 11,20"/></svg></span>
     <span id="lightbox-next" class="lightbox-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="13,4 17,12 13,20"/></svg></span>
-    <div id="lightbox-container" onclick="event.stopPropagation()">
+    <div id="lightbox-container" onclick="if(!this.parentElement.classList.contains('carousel')) event.stopPropagation()">
       <div id="lightbox-media">
         <img id="lightbox-img" src="" alt="" style="display:none;" />
         <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata" controlslist="nofullscreen"></video>
