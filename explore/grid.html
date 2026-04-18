@@ -406,38 +406,50 @@
     }
     #hint.hidden, #hint-glow.hidden { opacity: 0; animation: none; }
 
-    #nav-pills {
+    #nav-strip {
       position: fixed;
-      top: 24px; right: 24px;
+      top: 0; left: 0; right: 0;
+      height: 56px;
+      background: #0d0d0d;
       display: flex;
-      gap: 8px;
-      z-index: 6;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.6s;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 20;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
     }
-    #nav-pills.visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    .nav-pill {
-      color: #fff;
-      font-size: 16px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 8px 16px;
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 999px;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    #nav-colophon {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.42);
       white-space: nowrap;
-      cursor: pointer;
+      user-select: none;
     }
-    .nav-pill:hover {
-      background: rgba(20,20,20,0.9);
-      border-color: rgba(255,255,255,0.45);
+    #nav-strip:hover #nav-colophon { color: rgba(255,255,255,0.55); }
+    #nav-strip:hover { background: #000; }
+    #nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .nav-link {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.32em;
+      color: rgba(255,255,255,0.78);
+      background: none;
+      border: none;
+      padding: 10px 0;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.25s;
+    }
+    .nav-link:hover { color: #fff; }
+    .nav-link .arrow { display: inline-block; margin-right: 10px; }
+    @media (max-width: 460px) {
+      #nav-colophon { display: none; }
+      #nav-strip { justify-content: flex-end; padding: 0 20px; }
     }
   </style>
 </head>
@@ -486,9 +498,12 @@
   <div id="hint-glow"></div>
   <div id="hint">scroll to zoom &nbsp;·&nbsp; drag to pan</div>
 
-  <div id="nav-pills">
-    <div class="nav-pill" id="nav-home">Home</div>
-    <div class="nav-pill" id="nav-profile">Sign In</div>
+  <div id="nav-strip">
+    <div id="nav-colophon">THE COLLECTION</div>
+    <div id="nav-actions">
+      <button class="nav-link" id="nav-home"><span class="arrow">&uarr;</span>HOME</button>
+      <button class="nav-link" id="nav-profile">SIGN IN</button>
+    </div>
   </div>
 
   <script type="module">
@@ -560,7 +575,7 @@
     }
 
     function updateNavAuth(user) {
-      navProfile.textContent = user ? (user.displayName || user.email || 'Profile') : 'Sign In';
+      navProfile.textContent = user ? 'PROFILE' : 'SIGN IN';
     }
 
     setupAuthStateListener(user => { updateAuthUI(user); updateNavAuth(user); });
@@ -1108,23 +1123,9 @@
     let hintTimer = setTimeout(hideHint, 4000);
     function dismissHint() { clearTimeout(hintTimer); hideHint(); }
 
-    // ── Nav pills (home + profile) ───────────────────────────────
-    const navPills = document.getElementById('nav-pills');
+    // ── Nav strip (home + profile) ───────────────────────────────
     const navHome = document.getElementById('nav-home');
     const navProfile = document.getElementById('nav-profile');
-
-    let navTimer = null;
-    function showNav() {
-      navPills.classList.add('visible');
-      clearTimeout(navTimer);
-      navTimer = setTimeout(() => navPills.classList.remove('visible'), 3000);
-    }
-
-    window.addEventListener('mousemove', showNav);
-    window.addEventListener('wheel', showNav, { passive: true });
-    window.addEventListener('mousedown', showNav);
-    window.addEventListener('touchstart', showNav, { passive: true });
-    window.addEventListener('touchmove', showNav, { passive: true });
 
     navHome.addEventListener('click', e => {
       e.stopPropagation();
