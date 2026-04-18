@@ -440,6 +440,93 @@
       transition: color 0.2s;
     }
     #lightbox-notes-submit.active { color: #fff; }
+
+    #lightbox-video::-webkit-media-controls-fullscreen-button {
+      display: none !important;
+    }
+    #lightbox-fullscreen {
+      position: fixed;
+      bottom: 18px; right: 22px;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.8);
+      border-radius: 4px;
+      cursor: pointer;
+      z-index: 110;
+      transition: opacity 0.3s, background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    #lightbox-fullscreen:hover {
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      border-color: rgba(255,255,255,0.5);
+    }
+    #lightbox-fullscreen svg { display: block; width: 16px; height: 16px; }
+
+    #lightbox-playpause {
+      position: fixed;
+      bottom: 22px; left: 50%;
+      transform: translateX(-50%);
+      width: 48px; height: 48px;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.85);
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 110;
+      transition: opacity 0.3s, background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    #lightbox-playpause:hover {
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      border-color: rgba(255,255,255,0.6);
+    }
+    #lightbox-playpause svg { display: block; width: 20px; height: 20px; }
+
+    #lightbox-progress {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 2px;
+      background: rgba(255,255,255,0.12);
+      display: none;
+      z-index: 109;
+    }
+    #lightbox-progress .bar {
+      height: 100%;
+      width: 0%;
+      background: rgba(255,255,255,0.9);
+    }
+
+    #lightbox.carousel {
+      background: #000;
+      overflow: hidden;
+    }
+    #lightbox.carousel #lightbox-container {
+      padding: 0;
+      max-width: none;
+      gap: 0;
+    }
+    #lightbox.carousel #lightbox-img,
+    #lightbox.carousel #lightbox-video {
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+    #lightbox.carousel #lightbox-title,
+    #lightbox.carousel #lightbox-actions,
+    #lightbox.carousel #lightbox-notes { display: none; }
+    #lightbox.carousel #lightbox-playpause { display: flex; }
+    #lightbox.carousel #lightbox-progress { display: block; }
+
+    #lightbox.carousel.idle #lightbox-fullscreen,
+    #lightbox.carousel.idle #lightbox-playpause,
+    #lightbox.carousel.idle #lightbox-close,
+    #lightbox.carousel.idle #lightbox-prev,
+    #lightbox.carousel.idle #lightbox-next {
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body data-state="loading">
@@ -505,7 +592,7 @@
     <span id="lightbox-next" class="lightbox-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="13,4 17,12 13,20"/></svg></span>
     <div id="lightbox-container" onclick="event.stopPropagation()">
       <img id="lightbox-img" src="" alt="" style="display:none;" />
-      <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata"></video>
+      <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata" controlslist="nofullscreen"></video>
       <div id="lightbox-meta">
         <div id="lightbox-title"></div>
         <div id="lightbox-actions">
@@ -523,6 +610,9 @@
         </div>
       </div>
     </div>
+    <button id="lightbox-fullscreen" title="Full screen" aria-label="Full screen"></button>
+    <button id="lightbox-playpause" title="Play slideshow" aria-label="Play slideshow"></button>
+    <div id="lightbox-progress"><div class="bar"></div></div>
   </div>
 
   <script type="module">
@@ -883,12 +973,15 @@
       window.history.pushState({ image: currentEntry.file }, '', url.toString());
 
       lightbox.classList.add('open');
+      if (carouselPlaying) advanceStart();
     }
 
     function closeLightbox() {
+      if (lightbox.classList.contains('carousel')) exitCarousel();
       lightbox.classList.remove('open');
       lightboxImg.src = '';
       lightboxVideo.pause();
+      lightboxVideo.loop = true;
       lightboxVideo.removeAttribute('src');
       lightboxVideo.load();
       currentSection = null;
@@ -916,9 +1009,123 @@
 
     document.addEventListener('keydown', e => {
       if (!lightbox.classList.contains('open')) return;
-      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'Escape') {
+        if (lightbox.classList.contains('carousel')) exitCarousel();
+        else closeLightbox();
+      }
       else if (e.key === 'ArrowLeft') navigate(-1);
       else if (e.key === 'ArrowRight') navigate(1);
+      else if (e.key === ' ' && lightbox.classList.contains('carousel')) {
+        e.preventDefault();
+        if (carouselPlaying) pauseCarousel(); else playCarousel();
+      }
+    });
+
+    // ── Carousel (screensaver) mode ──────────────────────────────
+    const lightboxFullscreenBtn = document.getElementById('lightbox-fullscreen');
+    const lightboxPlayPauseBtn = document.getElementById('lightbox-playpause');
+    const lightboxProgressBar = document.querySelector('#lightbox-progress .bar');
+    const IMAGE_INTERVAL_MS = 5000;
+    let carouselPlaying = false;
+    let carouselRAF = null;
+    let carouselStart = 0;
+    let idleTimer = null;
+
+    const ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>';
+    const ICON_COLLAPSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg>';
+    const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="7,4 20,12 7,20"/></svg>';
+    const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+
+    lightboxFullscreenBtn.innerHTML = ICON_EXPAND;
+    lightboxPlayPauseBtn.innerHTML = ICON_PLAY;
+
+    function enterCarousel() {
+      lightbox.classList.add('carousel');
+      lightboxFullscreenBtn.innerHTML = ICON_COLLAPSE;
+      lightboxFullscreenBtn.title = 'Exit full screen';
+      if (lightbox.requestFullscreen) lightbox.requestFullscreen().catch(() => {});
+      resetIdle();
+    }
+    function exitCarousel() {
+      pauseCarousel();
+      lightbox.classList.remove('carousel', 'idle');
+      lightboxFullscreenBtn.innerHTML = ICON_EXPAND;
+      lightboxFullscreenBtn.title = 'Full screen';
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    }
+    function playCarousel() {
+      carouselPlaying = true;
+      lightboxPlayPauseBtn.innerHTML = ICON_PAUSE;
+      lightboxPlayPauseBtn.title = 'Pause slideshow';
+      advanceStart();
+    }
+    function pauseCarousel() {
+      carouselPlaying = false;
+      lightboxPlayPauseBtn.innerHTML = ICON_PLAY;
+      lightboxPlayPauseBtn.title = 'Play slideshow';
+      if (carouselRAF) cancelAnimationFrame(carouselRAF);
+      carouselRAF = null;
+      if (currentEntry && currentEntry.video) lightboxVideo.pause();
+      lightboxProgressBar.style.width = '0%';
+    }
+    function advanceStart() {
+      lightboxProgressBar.style.width = '0%';
+      if (carouselRAF) cancelAnimationFrame(carouselRAF);
+      if (currentEntry && currentEntry.video) {
+        lightboxVideo.loop = false;
+        lightboxVideo.currentTime = 0;
+        lightboxVideo.play().catch(() => {});
+      } else {
+        carouselStart = performance.now();
+        carouselRAF = requestAnimationFrame(tickImage);
+      }
+    }
+    function tickImage(now) {
+      if (!carouselPlaying || (currentEntry && currentEntry.video)) return;
+      const elapsed = now - carouselStart;
+      const pct = Math.min(100, (elapsed / IMAGE_INTERVAL_MS) * 100);
+      lightboxProgressBar.style.width = pct + '%';
+      if (elapsed >= IMAGE_INTERVAL_MS) { navigate(1); return; }
+      carouselRAF = requestAnimationFrame(tickImage);
+    }
+    function resetIdle() {
+      lightbox.classList.remove('idle');
+      clearTimeout(idleTimer);
+      if (lightbox.classList.contains('carousel')) {
+        idleTimer = setTimeout(() => lightbox.classList.add('idle'), 2500);
+      }
+    }
+
+    lightboxVideo.addEventListener('timeupdate', () => {
+      if (!carouselPlaying || !currentEntry || !currentEntry.video) return;
+      if (!lightboxVideo.duration) return;
+      const pct = Math.min(100, (lightboxVideo.currentTime / lightboxVideo.duration) * 100);
+      lightboxProgressBar.style.width = pct + '%';
+    });
+    lightboxVideo.addEventListener('ended', () => {
+      if (carouselPlaying) navigate(1);
+    });
+
+    lightboxFullscreenBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (lightbox.classList.contains('carousel')) exitCarousel();
+      else enterCarousel();
+    });
+    lightboxPlayPauseBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (carouselPlaying) pauseCarousel(); else playCarousel();
+    });
+
+    lightbox.addEventListener('mousemove', resetIdle);
+    lightbox.addEventListener('touchstart', resetIdle, { passive: true });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && lightbox.classList.contains('carousel')) {
+        pauseCarousel();
+        lightbox.classList.remove('carousel', 'idle');
+        lightboxFullscreenBtn.innerHTML = ICON_EXPAND;
+        lightboxFullscreenBtn.title = 'Full screen';
+      }
     });
 
     lightboxLikeBtn.addEventListener('click', async e => {
