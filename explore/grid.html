@@ -72,13 +72,6 @@
       cursor: zoom-out;
     }
     #lightbox.open { display: flex; }
-    #lightbox img {
-      max-width: 92vw;
-      max-height: 92vh;
-      object-fit: contain;
-      cursor: default;
-      pointer-events: none;
-    }
     #lightbox-close {
       position: fixed;
       top: 18px; right: 22px;
@@ -86,6 +79,59 @@
       font-size: 26px;
       cursor: pointer;
       line-height: 1;
+    }
+
+    #lightbox-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 95vw;
+      max-height: 95vh;
+    }
+    #lightbox-img {
+      max-width: 92vw;
+      max-height: 75vh;
+      object-fit: contain;
+    }
+    #lightbox-meta {
+      text-align: center;
+      color: #fff;
+      max-width: 600px;
+    }
+    #lightbox-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    #lightbox-date {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 16px;
+    }
+    #lightbox-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .lightbox-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: system-ui, sans-serif;
+      transition: all 0.2s;
+    }
+    .lightbox-btn:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+    }
+    .lightbox-btn.liked {
+      color: #ff4444;
     }
 
     #hint {
@@ -110,7 +156,17 @@
 
   <div id="lightbox">
     <span id="lightbox-close">&#x2715;</span>
-    <img id="lightbox-img" src="" alt="" />
+    <div id="lightbox-container">
+      <img id="lightbox-img" src="" alt="" />
+      <div id="lightbox-meta">
+        <div id="lightbox-title"></div>
+        <div id="lightbox-date"></div>
+        <div id="lightbox-actions">
+          <button id="lightbox-like" class="lightbox-btn">♡</button>
+          <button id="lightbox-share" class="lightbox-btn">Share</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="hint">scroll to zoom &nbsp;·&nbsp; drag to pan</div>
@@ -241,7 +297,7 @@
           item.appendChild(likeBtn);
 
           item.addEventListener('click', () => {
-            if (!didDrag) openLightbox(`../${p.entry.file}`, p.entry.title);
+            if (!didDrag) openLightbox(p.entry);
           });
 
           canvas.appendChild(item);
@@ -372,15 +428,44 @@
     // ── Lightbox ──────────────────────────────────────────────────
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxDate = document.getElementById('lightbox-date');
+    const lightboxLikeBtn = document.getElementById('lightbox-like');
+    const lightboxShareBtn = document.getElementById('lightbox-share');
+    let currentEntry = null;
 
-    function openLightbox(src, title) {
-      lightboxImg.src = src; lightboxImg.alt = title || '';
+    function openLightbox(entry) {
+      currentEntry = entry;
+      lightboxImg.src = `../${entry.file}`;
+      lightboxImg.alt = entry.title || '';
+      lightboxTitle.textContent = entry.title || '';
+      lightboxTitle.style.display = entry.title ? 'block' : 'none';
+      lightboxDate.textContent = entry.date || '';
+      lightboxDate.style.display = entry.date ? 'block' : 'none';
+      lightboxLikeBtn.classList.remove('liked');
       lightbox.classList.add('open');
     }
     function closeLightbox() {
-      lightbox.classList.remove('open'); lightboxImg.src = '';
+      lightbox.classList.remove('open');
+      lightboxImg.src = '';
+      currentEntry = null;
     }
-    lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+    lightboxLikeBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      lightboxLikeBtn.classList.toggle('liked');
+    });
+    lightboxShareBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!currentEntry) return;
+      const url = `${window.location.origin}${window.location.pathname}?image=${currentEntry.file}`;
+      const text = `${currentEntry.title || 'Image'} – A Story of Love and Death`;
+      if (navigator.share) {
+        navigator.share({ title: text, url }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(url).catch(() => {});
+      }
+    });
+    lightbox.addEventListener('click', e => { if (e.target === lightbox || e.target.parentElement === lightbox) closeLightbox(); });
     document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
