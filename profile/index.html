@@ -230,6 +230,198 @@
       word-break: break-word;
     }
 
+    /* ── Lightbox (mirrors explore/grid.html) ── */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.93);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      overflow-y: auto;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox-close {
+      position: fixed;
+      top: 18px; right: 22px;
+      color: #fff;
+      font-size: 26px;
+      cursor: pointer;
+      line-height: 1;
+      z-index: 110;
+    }
+    .lightbox-nav {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      padding: 24px 10px;
+      user-select: none;
+      transition: color 0.15s;
+      z-index: 101;
+    }
+    .lightbox-nav svg { display: block; width: 32px; height: 32px; }
+    .lightbox-nav:hover { color: #fff; }
+    #lightbox-prev { left: 16px; }
+    #lightbox-next { right: 16px; }
+
+    #lightbox-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 95vw;
+      padding: 40px 20px;
+      cursor: default;
+    }
+    #lightbox-img, #lightbox-video {
+      max-width: min(92vw, calc(100vw - 170px));
+      max-height: 75vh;
+      object-fit: contain;
+    }
+    #lightbox-video { background: #000; }
+    #lightbox-title {
+      font-size: 28px;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    #lightbox-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .lightbox-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .lightbox-btn:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+    }
+    .lightbox-like-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+    }
+    .lightbox-like-btn svg { display: block; }
+
+    #lightbox-notes {
+      max-width: 600px;
+      width: 100%;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      padding-top: 20px;
+    }
+    #lightbox-notes-header {
+      color: rgba(255,255,255,0.5);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      margin-bottom: 16px;
+    }
+    #lightbox-notes-list {
+      max-height: 220px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+    .note-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .note-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      flex-shrink: 0;
+    }
+    .note-body { flex: 1; }
+    .note-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+    .note-author { font-size: 12px; color: rgba(255,255,255,0.9); }
+    .note-time { font-size: 10px; color: rgba(255,255,255,0.4); }
+    .note-delete {
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .note-delete:hover { color: rgba(255,255,255,0.7); }
+    .note-text {
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      word-wrap: break-word;
+      letter-spacing: 0.02em;
+    }
+    #lightbox-notes-message {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      text-align: center;
+      padding: 12px 0;
+    }
+    #lightbox-notes-input-section {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #notes-user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      flex-shrink: 0;
+    }
+    #lightbox-notes-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 8px 0;
+      font-size: 13px;
+      outline: none;
+      letter-spacing: 0.02em;
+    }
+    #lightbox-notes-input:focus { border-bottom-color: rgba(255,255,255,0.5); }
+    #lightbox-notes-input::placeholder { color: rgba(255,255,255,0.3); }
+    #lightbox-notes-submit {
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.35);
+      padding: 0;
+      cursor: pointer;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      transition: color 0.2s;
+    }
+    #lightbox-notes-submit.active { color: #fff; }
   </style>
 </head>
 <body data-state="loading">
@@ -289,13 +481,46 @@
     </section>
   </div>
 
+  <div id="lightbox">
+    <span id="lightbox-close">&#x2715;</span>
+    <span id="lightbox-prev" class="lightbox-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="11,4 7,12 11,20"/></svg></span>
+    <span id="lightbox-next" class="lightbox-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="13,4 17,12 13,20"/></svg></span>
+    <div id="lightbox-container" onclick="event.stopPropagation()">
+      <img id="lightbox-img" src="" alt="" style="display:none;" />
+      <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata"></video>
+      <div id="lightbox-meta">
+        <div id="lightbox-title"></div>
+        <div id="lightbox-actions">
+          <button id="lightbox-like" class="lightbox-btn lightbox-like-btn"></button>
+          <button id="lightbox-share" class="lightbox-btn">Share</button>
+        </div>
+      </div>
+      <div id="lightbox-notes">
+        <div id="lightbox-notes-header">Notes</div>
+        <div id="lightbox-notes-list"></div>
+        <div id="lightbox-notes-input-section">
+          <div id="notes-user-avatar"></div>
+          <input id="lightbox-notes-input" type="text" placeholder="Add a note..." maxlength="500" />
+          <button id="lightbox-notes-submit">POST</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import {
       signInGoogle,
       signOutUser,
       setupAuthStateListener,
+      getCurrentUser,
       getUserLikedImages,
-      getUserCommentedImages
+      getUserCommentedImages,
+      addLike,
+      removeLike,
+      isImageLiked,
+      addNote,
+      getNotes,
+      deleteNote
     } from '../js/firebase.js';
 
     const body = document.body;
@@ -367,7 +592,8 @@
           emptyEl: document.getElementById('liked-empty'),
           countEl: document.getElementById('liked-count'),
           files: likedRes.value.map(d => d.imageFile),
-          manifestMap
+          manifestMap,
+          sectionName: 'liked'
         });
       } else {
         showError('liked-error', likedRes.reason);
@@ -379,7 +605,8 @@
           emptyEl: document.getElementById('noted-empty'),
           countEl: document.getElementById('noted-count'),
           files: notedRes.value,
-          manifestMap
+          manifestMap,
+          sectionName: 'noted'
         });
       } else {
         showError('noted-error', notedRes.reason);
@@ -414,12 +641,19 @@
       }
     }
 
-    function renderGrid({ gridEl, emptyEl, countEl, files, manifestMap }) {
+    // Module state for the lightbox. `sections` keeps one entry list per
+    // named section so prev/next only navigates within the user's current
+    // scope (Liked or Noted, not cross-section or across the whole grid).
+    const sections = {};
+
+    function renderGrid({ gridEl, emptyEl, countEl, files, manifestMap, sectionName }) {
       gridEl.innerHTML = '';
 
       const entries = files
         .map(f => manifestMap.get(f))
         .filter(Boolean);
+
+      sections[sectionName] = entries;
 
       countEl.textContent = entries.length ? String(entries.length) : '';
 
@@ -432,7 +666,8 @@
       emptyEl.style.display = 'none';
 
       const frag = document.createDocumentFragment();
-      for (const entry of entries) {
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
         const item = document.createElement('div');
         item.className = 'grid-item';
 
@@ -449,18 +684,292 @@
           item.appendChild(badge);
         }
 
-        item.addEventListener('click', () => openInGrid(entry));
+        item.addEventListener('click', () => openLightbox(sectionName, i));
         frag.appendChild(item);
       }
       gridEl.appendChild(frag);
     }
 
-    // Open an image in the grid's lightbox — reuses like, share, notes,
-    // prev/next for free. Browser back returns to the profile.
-    function openInGrid(entry) {
-      const url = new URL('../explore/grid.html', window.location.href);
-      url.searchParams.set('image', entry.file);
-      window.location.href = url.toString();
+    // ────────────────────────────────────────────────────────────────
+    // Lightbox — mirrors explore/grid.html so the user gets like/unlike,
+    // share, notes (view + add + delete own), and prev/next navigation
+    // within the current section, without leaving the profile page.
+    // ────────────────────────────────────────────────────────────────
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxVideo = document.getElementById('lightbox-video');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxLikeBtn = document.getElementById('lightbox-like');
+    const lightboxShareBtn = document.getElementById('lightbox-share');
+    const lightboxNotesList = document.getElementById('lightbox-notes-list');
+    const lightboxNotesInput = document.getElementById('lightbox-notes-input');
+    const lightboxNotesSubmit = document.getElementById('lightbox-notes-submit');
+    const notesUserAvatar = document.getElementById('notes-user-avatar');
+    const lightboxPrev = document.getElementById('lightbox-prev');
+    const lightboxNext = document.getElementById('lightbox-next');
+
+    const HEART_PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
+    function heartSVG(filled, size = 18) {
+      return filled
+        ? `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="#ff4444"><path d="${HEART_PATH}"/></svg>`
+        : `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linejoin="round"><path d="${HEART_PATH}"/></svg>`;
+    }
+    function renderHeart() {
+      lightboxLikeBtn.innerHTML = heartSVG(lightboxLikeBtn.classList.contains('liked'));
+    }
+    renderHeart();
+
+    let currentSection = null;  // 'liked' | 'noted'
+    let currentIndex = -1;
+    let currentEntry = null;
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatTime(date) {
+      const now = new Date();
+      const diff = now - date;
+      const mins = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    async function loadNotes() {
+      if (!currentEntry) return;
+      try {
+        const notes = await getNotes(currentEntry.file);
+        lightboxNotesList.innerHTML = '';
+        if (notes.length === 0) {
+          lightboxNotesList.innerHTML = '<div id="lightbox-notes-message">No notes yet. Be the first to add one!</div>';
+          return;
+        }
+        const user = getCurrentUser();
+        for (const note of notes) {
+          const noteEl = document.createElement('div');
+          noteEl.className = 'note-item';
+          const isOwner = user && user.uid === note.userId;
+          const initials = (note.displayName || 'U').charAt(0).toUpperCase();
+          noteEl.innerHTML = `
+            <div class="note-avatar">${initials}</div>
+            <div class="note-body">
+              <div class="note-meta">
+                <span class="note-author">${escapeHtml(note.displayName || 'Anonymous')}</span>
+                <span class="note-time">${formatTime(note.createdAt)}</span>
+                ${isOwner ? `<span class="note-delete" data-note-id="${note.id}">×</span>` : ''}
+              </div>
+              <div class="note-text">${escapeHtml(note.text)}</div>
+            </div>`;
+          if (isOwner) {
+            noteEl.querySelector('.note-delete').addEventListener('click', async e => {
+              e.stopPropagation();
+              try {
+                await deleteNote(note.id);
+                await loadNotes();
+              } catch (err) {
+                console.error('Delete note failed:', err);
+              }
+            });
+          }
+          lightboxNotesList.appendChild(noteEl);
+        }
+      } catch (err) {
+        console.error('Load notes failed:', err);
+        lightboxNotesList.innerHTML = '<div id="lightbox-notes-message">Error loading notes</div>';
+      }
+    }
+
+    async function openLightbox(sectionName, index) {
+      const list = sections[sectionName];
+      if (!list || !list[index]) return;
+      currentSection = sectionName;
+      currentIndex = index;
+      currentEntry = list[index];
+
+      const filename = (currentEntry.video || currentEntry.file).split('/').pop();
+      if (currentEntry.video) {
+        lightboxImg.style.display = 'none';
+        lightboxImg.src = '';
+        lightboxVideo.style.display = 'block';
+        lightboxVideo.src = `../${currentEntry.video}`;
+        lightboxVideo.poster = `../${currentEntry.file}`;
+        lightboxVideo.load();
+        lightboxVideo.play().catch(() => {});
+      } else {
+        lightboxVideo.pause();
+        lightboxVideo.removeAttribute('src');
+        lightboxVideo.load();
+        lightboxVideo.style.display = 'none';
+        lightboxImg.style.display = 'block';
+        lightboxImg.src = `../${currentEntry.file}`;
+        lightboxImg.alt = filename;
+      }
+      lightboxTitle.textContent = currentEntry.title || filename;
+
+      lightboxLikeBtn.classList.remove('liked');
+      try {
+        if (await isImageLiked(currentEntry.file)) lightboxLikeBtn.classList.add('liked');
+      } catch (err) {
+        console.error('Check like failed:', err);
+      }
+      renderHeart();
+
+      // Notes avatar for the input row
+      const user = getCurrentUser();
+      if (user) {
+        const name = user.displayName || user.email || 'U';
+        notesUserAvatar.textContent = name.charAt(0).toUpperCase();
+      }
+
+      lightboxNotesInput.value = '';
+      lightboxNotesSubmit.classList.remove('active');
+      await loadNotes();
+
+      // URL state: matches grid.html so share/back work
+      const url = new URL(window.location.href);
+      url.searchParams.set('image', currentEntry.file);
+      window.history.pushState({ image: currentEntry.file }, '', url.toString());
+
+      lightbox.classList.add('open');
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      lightboxImg.src = '';
+      lightboxVideo.pause();
+      lightboxVideo.removeAttribute('src');
+      lightboxVideo.load();
+      currentSection = null;
+      currentIndex = -1;
+      currentEntry = null;
+      const url = new URL(window.location.href);
+      url.searchParams.delete('image');
+      window.history.pushState({}, '', url.toString());
+    }
+
+    function navigate(dir) {
+      if (!currentSection) return;
+      const list = sections[currentSection];
+      if (!list || !list.length) return;
+      const next = (currentIndex + dir + list.length) % list.length;
+      openLightbox(currentSection, next);
+    }
+
+    lightbox.addEventListener('click', e => {
+      if (e.target === lightbox) closeLightbox();
+    });
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    lightboxPrev.addEventListener('click', e => { e.stopPropagation(); navigate(-1); });
+    lightboxNext.addEventListener('click', e => { e.stopPropagation(); navigate(1); });
+
+    document.addEventListener('keydown', e => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'ArrowLeft') navigate(-1);
+      else if (e.key === 'ArrowRight') navigate(1);
+    });
+
+    lightboxLikeBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!currentEntry) return;
+      const wasLiked = lightboxLikeBtn.classList.contains('liked');
+      try {
+        if (wasLiked) {
+          await removeLike(currentEntry.file);
+          // Remove from the liked list so the profile stays truthful.
+          // If we're in the Liked section, also adjust index / close if empty.
+          removeFromSection('liked', currentEntry.file);
+          if (currentSection === 'liked') {
+            const liked = sections.liked;
+            if (!liked || liked.length === 0) { closeLightbox(); return; }
+            currentIndex = Math.min(currentIndex, liked.length - 1);
+            currentEntry = liked[currentIndex];
+          }
+          lightboxLikeBtn.classList.remove('liked');
+        } else {
+          await addLike(currentEntry.file);
+          lightboxLikeBtn.classList.add('liked');
+          // If it's not in the liked list yet, append it so the grid stays in sync
+          addToSection('liked', currentEntry);
+        }
+        renderHeart();
+      } catch (err) {
+        console.error('Like toggle failed:', err);
+      }
+    });
+
+    lightboxShareBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!currentEntry) return;
+      const stem = currentEntry.file.split('/').pop().replace(/\.webp$/, '');
+      const url = new URL(`../share/${stem}.html`, window.location.href).href;
+      const text = `${currentEntry.title || 'Image'} – A Story of Love and Death`;
+      if (navigator.share) navigator.share({ title: text, url }).catch(() => {});
+      else navigator.clipboard.writeText(url).catch(() => {});
+    });
+
+    lightboxNotesInput.addEventListener('input', () => {
+      lightboxNotesSubmit.classList.toggle('active', lightboxNotesInput.value.trim().length > 0);
+    });
+    lightboxNotesInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); lightboxNotesSubmit.click(); }
+    });
+    lightboxNotesSubmit.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!currentEntry || !lightboxNotesInput.value.trim()) return;
+      try {
+        await addNote(currentEntry.file, lightboxNotesInput.value);
+        lightboxNotesInput.value = '';
+        lightboxNotesSubmit.classList.remove('active');
+        await loadNotes();
+        addToSection('noted', currentEntry);
+      } catch (err) {
+        console.error('Add note failed:', err);
+        alert('Failed to add note: ' + err.message);
+      }
+    });
+
+    // Keep section lists and their visible grids / counts in sync when the
+    // user likes/unlikes or notes from inside the lightbox, so closing
+    // the lightbox shows the correct state without a full reload.
+    function rerenderSection(name) {
+      if (name === 'liked') {
+        renderGrid({
+          gridEl: document.getElementById('liked-grid'),
+          emptyEl: document.getElementById('liked-empty'),
+          countEl: document.getElementById('liked-count'),
+          files: sections.liked.map(e => e.file),
+          manifestMap: new Map(sections.liked.map(e => [e.file, e])),
+          sectionName: 'liked'
+        });
+      } else if (name === 'noted') {
+        renderGrid({
+          gridEl: document.getElementById('noted-grid'),
+          emptyEl: document.getElementById('noted-empty'),
+          countEl: document.getElementById('noted-count'),
+          files: sections.noted.map(e => e.file),
+          manifestMap: new Map(sections.noted.map(e => [e.file, e])),
+          sectionName: 'noted'
+        });
+      }
+    }
+    function removeFromSection(name, file) {
+      if (!sections[name]) return;
+      sections[name] = sections[name].filter(e => e.file !== file);
+      rerenderSection(name);
+    }
+    function addToSection(name, entry) {
+      if (!sections[name]) sections[name] = [];
+      if (sections[name].some(e => e.file === entry.file)) return;
+      sections[name] = [entry, ...sections[name]];
+      rerenderSection(name);
     }
   </script>
 </body>
