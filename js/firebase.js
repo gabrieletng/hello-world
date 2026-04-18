@@ -178,43 +178,48 @@ export async function deleteNote(noteId) {
 }
 
 // User profile functions
+//
+// Sort client-side instead of server-side: Firestore requires a composite
+// index for `where(userId) + orderBy(ts)`, and these indexes aren't in the
+// deployed config. Without the index, the query throws and the profile
+// page silently renders empty. The liked/commented sets are small enough
+// that in-memory sorting is free.
+
 export async function getUserLikedImages() {
   if (!currentUser) return [];
 
-  try {
-    const q = query(
-      collection(db, "likes"),
-      where("userId", "==", currentUser.uid),
-      orderBy("likedAt", "desc")
-    );
-    const snapshot = await getDocs(q);
+  const q = query(
+    collection(db, "likes"),
+    where("userId", "==", currentUser.uid)
+  );
+  const snapshot = await getDocs(q);
 
-    return snapshot.docs.map(doc => ({
+  return snapshot.docs
+    .map(doc => ({
       id: doc.id,
       ...doc.data(),
-      likedAt: doc.data().likedAt?.toDate?.() || new Date()
-    }));
-  } catch (error) {
-    console.error("Error getting liked images:", error);
-    return [];
-  }
+      likedAt: doc.data().likedAt?.toDate?.() || new Date(0)
+    }))
+    .sort((a, b) => b.likedAt - a.likedAt);
 }
 
 export async function getUserCommentedImages() {
   if (!currentUser) return [];
 
-  try {
-    const q = query(
-      collection(db, "notes"),
-      where("userId", "==", currentUser.uid),
-      orderBy("createdAt", "desc")
-    );
-    const snapshot = await getDocs(q);
+  const q = query(
+    collection(db, "notes"),
+    where("userId", "==", currentUser.uid)
+  );
+  const snapshot = await getDocs(q);
 
-    const imageFiles = [...new Set(snapshot.docs.map(doc => doc.data().imageFile))];
-    return imageFiles;
-  } catch (error) {
-    console.error("Error getting commented images:", error);
-    return [];
+  const byFile = new Map();
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const ts = data.createdAt?.toDate?.() || new Date(0);
+    const prev = byFile.get(data.imageFile);
+    if (!prev || ts > prev) byFile.set(data.imageFile, ts);
   }
+  return [...byFile.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([file]) => file);
 }

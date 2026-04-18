@@ -218,6 +218,17 @@
       padding: 28px 0;
       letter-spacing: 0.04em;
     }
+    .error {
+      color: #ffb4b4;
+      background: rgba(255, 80, 80, 0.08);
+      border: 1px solid rgba(255, 80, 80, 0.25);
+      padding: 14px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      line-height: 1.5;
+      word-break: break-word;
+    }
 
     /* ── Lightbox ── */
     #lightbox {
@@ -306,6 +317,7 @@
         <h2>Liked</h2>
         <span class="count" id="liked-count"></span>
       </div>
+      <div id="liked-error" class="error" style="display:none;"></div>
       <div id="liked-grid" class="grid"></div>
       <div id="liked-empty" class="empty" style="display:none;">No likes yet — tap the heart on any image.</div>
     </section>
@@ -315,6 +327,7 @@
         <h2>Noted</h2>
         <span class="count" id="noted-count"></span>
       </div>
+      <div id="noted-error" class="error" style="display:none;"></div>
       <div id="noted-grid" class="grid"></div>
       <div id="noted-empty" class="empty" style="display:none;">No notes yet — write one from any image.</div>
     </section>
@@ -396,27 +409,42 @@
 
       const manifestMap = await manifestPromise;
 
-      const [liked, noted] = await Promise.all([
-        getUserLikedImages().catch(err => { console.error(err); return []; }),
-        getUserCommentedImages().catch(err => { console.error(err); return []; })
+      const [likedRes, notedRes] = await Promise.allSettled([
+        getUserLikedImages(),
+        getUserCommentedImages()
       ]);
 
-      renderGrid({
-        gridEl: document.getElementById('liked-grid'),
-        emptyEl: document.getElementById('liked-empty'),
-        countEl: document.getElementById('liked-count'),
-        files: liked.map(d => d.imageFile),
-        manifestMap
-      });
+      if (likedRes.status === 'fulfilled') {
+        renderGrid({
+          gridEl: document.getElementById('liked-grid'),
+          emptyEl: document.getElementById('liked-empty'),
+          countEl: document.getElementById('liked-count'),
+          files: likedRes.value.map(d => d.imageFile),
+          manifestMap
+        });
+      } else {
+        showError('liked-error', likedRes.reason);
+      }
 
-      renderGrid({
-        gridEl: document.getElementById('noted-grid'),
-        emptyEl: document.getElementById('noted-empty'),
-        countEl: document.getElementById('noted-count'),
-        files: noted,
-        manifestMap
-      });
+      if (notedRes.status === 'fulfilled') {
+        renderGrid({
+          gridEl: document.getElementById('noted-grid'),
+          emptyEl: document.getElementById('noted-empty'),
+          countEl: document.getElementById('noted-count'),
+          files: notedRes.value,
+          manifestMap
+        });
+      } else {
+        showError('noted-error', notedRes.reason);
+      }
     });
+
+    function showError(id, err) {
+      console.error(err);
+      const el = document.getElementById(id);
+      el.textContent = `Couldn't load: ${err?.message || err}`;
+      el.style.display = 'block';
+    }
 
     function renderUser(user) {
       const avatar = document.getElementById('avatar');
