@@ -2,21 +2,11 @@
 
 Live: https://gabrieletng.github.io/hello-world/
 
----
-
-## Concept
-
-A photography collection website. The homepage is a marquee tease with a "doorway" into the full collection — a zoomable, pannable canvas of ~850 images. Signed-in visitors can like images, leave notes, and share individual pieces; each image gets a per-URL share page with a proper OG preview. The site tracks behaviour end-to-end via PostHog, Microsoft Clarity, and a Discord webhook that pings the owner's phone on sign-ins, notes, likes, and shares.
-
-### What the project is **not** (concepts we tried and discarded)
-
-- **Rotating / multi landing page.** The original plan was several landing pages, each a curated 12-image "story" with its own centred text, cycling the entry point. Dropped in favour of a single homepage acting as a doorway into the collection. Every image gets its moment inside the grid and the carousel mode instead of on a dedicated page.
-- **Separate `explore/carousel.html`.** A standalone chronological/random carousel page. The grid + lightbox + fullscreen slideshow mode cover this better — the carousel is now a *mode* of the lightbox rather than a page.
-- **Multiple `js/marquee.js` consumers.** The shared engine is still factored out, but `index.html` is its only caller now.
+A photography collection website. A single homepage acts as a doorway into the full collection — a zoomable, pannable canvas of ~850 images. Signed-in visitors can like images, leave notes, and share individual pieces. Every image has its own URL with a proper link-preview. Behaviour is tracked end-to-end via PostHog, Microsoft Clarity, and a Discord webhook.
 
 ---
 
-## Repo Structure (actual)
+## Repo Structure
 
 ```
 /
@@ -26,31 +16,28 @@ A photography collection website. The homepage is a marquee tease with a "doorwa
 │   └── share/              ← per-item share pages (auto-generated, one per image)
 ├── profile/
 │   └── index.html          ← liked + noted images for the signed-in user
-├── images/                 ← full image collection (WebP/MP4/GIF, ~900 files, ~260MB)
+├── images/                 ← full image collection (WebP/MP4/GIF)
 │   └── og-homepage.jpg     ← link-preview image for the homepage
 ├── manifest.json           ← source of truth: { file, title, date, width, height, type } per item
 ├── .ethos-manifest.json    ← tracks which images/ files were created by sync-ethos
 ├── js/
 │   ├── marquee.js          ← homepage marquee engine (drag, inertia, parallax)
 │   ├── firebase.js         ← auth + Firestore (likes, notes, profile queries)
-│   └── analytics.js        ← PostHog wrapper + owner webhook (Discord)
-├── sync.sh                 ← run to sync ethos → images/, update manifest + share pages, commit, push
+│   └── analytics.js        ← PostHog wrapper + Discord owner webhook
+├── sync.sh                 ← ethos → images/ + manifest + share pages + commit + push
 ├── scripts/
 │   ├── sync-ethos.py           ← compresses new ethos images, removes orphans
 │   ├── optimize.py / .sh       ← manual: convert arbitrary images to WebP
 │   ├── make-thumbnails.py      ← generates 600-px thumbs for grid performance
-│   ├── update-manifest.py      ← rebuilds manifest.json from images/ (incl. width/height/type)
+│   ├── update-manifest.py      ← rebuilds manifest.json from images/
 │   ├── update-share-pages.py   ← rebuilds explore/share/*.html from manifest
-│   ├── install_posthog.py      ← one-shot: inject PostHog snippet into all HTML pages
-│   ├── install_clarity.py      ← one-shot: inject Microsoft Clarity snippet into all HTML pages
-│   └── install-hooks.sh        ← installs git pre-commit hook (legacy; sync.sh is the norm)
+│   ├── install_posthog.py      ← injects PostHog snippet into every HTML page
+│   ├── install_clarity.py      ← injects Microsoft Clarity snippet into every HTML page
+│   └── install-hooks.sh        ← optional git pre-commit hook
 ├── .github/workflows/
-│   └── sync-images.yml     ← CI: on push to images/, regenerate manifest.json and commit back
-├── .nojekyll               ← lets GitHub Pages serve underscore-prefixed filenames
-└── PROJECT.md
+│   └── sync-images.yml     ← CI: on push to images/, regenerate manifest.json
+└── .nojekyll               ← serves underscore-prefixed filenames via GitHub Pages
 ```
-
-See **"What the project is not"** above for the concepts that explain the absent `landing/`, `explore/carousel.html`, and multi-consumer marquee.
 
 ---
 
@@ -59,118 +46,96 @@ See **"What the project is not"** above for the concepts that explain the absent
 ### Homepage (`index.html`)
 - Dual scrolling marquee (top + bottom bands), opposite directions, draggable with inertia
 - Centre text: "THIS IS A STORY OF / LOVE AND DEATH" (Bebas Neue)
-- Footer strip: colophon + "THE COLLECTION ↓" portal link
-- Clicking the portal triggers a slide-up transition: the whole homepage translates off-screen, revealing the dark collection background beneath, then navigates to `explore/grid.html`
-- OG/Twitter metadata points at the **absolute** URL `https://gabrieletng.github.io/hello-world/images/og-homepage.jpg` — relative paths failed to unfurl on WhatsApp / iMessage / Slack
+- Footer strip: colophon + "THE COLLECTION ↓" portal
+- Clicking the portal slides the homepage up off-screen, revealing the dark collection background beneath, then navigates to the grid
+- OG/Twitter image: absolute URL to `images/og-homepage.jpg`
 
 ### Grid (`explore/grid.html`)
-- Zoomable/pannable infinite canvas — digital mood board on `#1E1E1E`
-- Images placed with deterministic cell-based jitter (consistent seed so layout is stable between loads); no rotation
-- Sizes vary ~80–280 px display height; aspect ratio from manifest `width`/`height`
-- Pan: drag (mouse + touch) with kinetic inertia; zoom: scroll/pinch
-- Loads **600-px thumbnails** (not full-res) for speed; viewport culling so off-screen items don't decode
-- Cursor is `zoom-in` over items, with `cursor: grab` over the canvas
-- Hint pill: "pan · zoom · open" (Bebas Neue, glowing to draw the eye)
-- Nav pills (top): HOME + SIGN IN / username → profile — fade away after an initial 10s dwell, return on pan/zoom or hover
-- Like heart appears on hover; full red when liked
-- Click opens a lightbox: full-screen image, like, share, notes, prev/next arrows
-- Lightbox uses `align-items: safe center` so tall images remain scrollable (flex-center + overflow clips the top otherwise)
-- Lightbox auto-opens when the URL carries `?image=<file>`
+- Zoomable/pannable canvas on `#1E1E1E` background
+- Images placed by deterministic cell-based jitter with a fixed seed — layout is stable across loads
+- Item height ranges ~80–280 px; aspect ratio taken from manifest `width`/`height` so layout runs before decode
+- Pan: drag (mouse + touch) with kinetic inertia. Zoom: scroll / pinch
+- Renders 600-px thumbnails with viewport culling
+- Hint pill "pan · zoom · open" in Bebas Neue
+- Top nav pills — HOME + SIGN IN / username → profile — fade after a 10 s dwell, return on interaction
+- Like heart on hover; full red when liked
+- Click opens the lightbox
 
-### Carousel mode (inside the lightbox)
-- Triggered by the fullscreen button at the bottom-right of the lightbox; also exits on Esc
-- Media fills the viewport; meta/notes/auth chrome hides; a play/pause button + progress bar appears at bottom-center
-- While playing: images auto-advance every N seconds (speed cycler button lets the user step through 3s / 5s / 10s); videos play to their natural end before advancing
-- Keyboard: Space toggles play/pause, Esc exits carousel (then lightbox on a second press)
-- Idle behaviour: after inactivity the controls (close, prev/next, progress, fullscreen, play/pause) fade out for a screensaver feel; tap the dead centre to hide UI on touch
-- Shared implementation between `explore/grid.html` and `profile/index.html` — any lightbox UX fix on grid gets mirrored to profile
+### Lightbox (grid + profile)
+- Full-screen media with title, date, like button, share button, notes panel, prev/next arrows
+- `align-items: safe center` keeps tall images scrollable
+- Auto-opens when the URL carries `?image=<file>`
+- Fullscreen button at bottom-right enters **carousel mode**:
+  - Media fills the viewport; meta/notes/auth hide; play/pause + progress bar appear
+  - Images auto-advance on a 3 s / 5 s / 10 s cycle (speed button steps through); videos play to end
+  - Space toggles play/pause; Esc exits carousel, then the lightbox
+  - Controls fade on idle for a screensaver feel; tap dead-centre to hide UI on touch
+- Shared implementation between `explore/grid.html` and `profile/index.html`
 
 ### Profile (`profile/index.html`)
 - Requires Google sign-in
-- Two grids: **Liked** and **Noted** (client-side sorted by recency — we skip Firestore composite indexes)
-- Clicking an image opens the same grid lightbox (via `?image=` param), so likes/notes/share all work from profile
-- Unified Bebas Neue styling on dark background
+- Two grids: **Liked** and **Noted**, sorted by recency
+- Clicking an image opens the grid lightbox via `?image=` param so likes / notes / share / carousel work unchanged
+- Bebas Neue on `#1E1E1E`
 
-### Per-item share pages (`explore/share/<slug>.html`)
-- One auto-generated page per manifest item
-- Each page carries its own `og:image` / `twitter:image` (JPEG for Apple compatibility) and redirects to `explore/grid.html?image=<file>`
-- Regenerated by `scripts/update-share-pages.py`, invoked from `sync.sh`
-- **Why**: link previews on iMessage / Twitter / Discord require per-URL OG tags. A single SPA can't do this.
+### Share pages (`explore/share/<slug>.html`)
+- One auto-generated page per manifest item, with its own `og:image` / `twitter:image` (JPEG for Apple compatibility)
+- Each redirects to `explore/grid.html?image=<file>` after the scraper has read the tags
+- Regenerated by `scripts/update-share-pages.py` (run from `sync.sh`)
 
 ---
 
-## Social Layer (shipped)
+## Social Layer
 
-**Firebase project:** `loveanddeath-app`
+Firebase project: `loveanddeath-app`.
 
-- **Auth**: Google sign-in via popup with `prompt: 'select_account'`; redirect fallback when popups are blocked
-- **Firestore collections**:
+- **Auth**: Google sign-in; popup with `prompt: 'select_account'`, redirect fallback when popups are blocked
+- **Firestore collections**
   - `likes` → `{ userId, imageFile, likedAt }`
   - `notes` → `{ userId, imageFile, text, createdAt, displayName }`
-- **No composite indexes**: profile + notes queries filter server-side (`where`) and sort client-side, so we don't need to deploy `firestore.indexes.json`. Without this the profile page silently rendered empty.
-- **Share**: Web Share API on mobile, copy-link fallback on desktop; shared URL points at the per-item share page so previews unfurl correctly
+- Profile and notes queries filter server-side (`where`) and sort client-side, so no composite indexes are deployed
+- **Share**: Web Share API on mobile, copy-link fallback on desktop; shared URLs point at the per-item share page
 
 ---
 
-## Analytics / Notifications
+## Analytics
 
-Two channels, both wired through `js/analytics.js`:
+Wired through `js/analytics.js`, which is the single call site for `track(event, props)`.
 
-1. **PostHog** (EU cloud, project `phc_wj3bjUJBhTUwVwmMngVTVcCKVdhdvC2deqCDBhDfN67f`) — captures every event; `person_profiles: 'identified_only'`, `respect_dnt: true`. Users are `identify`'d on sign-in and `reset` on sign-out.
-2. **Discord webhook** — real-time phone pings on a curated subset: `user_signed_in`, `note_created`, `like_added`, `image_shared`. Uses `keepalive` so the request survives the page unload that often follows a share/sign-in.
-3. **Microsoft Clarity** (`wdsri555iv`) — session replay + heatmaps, injected across all HTML pages.
+- **PostHog** (EU cloud) — captures every event. `person_profiles: 'identified_only'`, `respect_dnt: true`. Users are `identify`'d on sign-in and `reset` on sign-out.
+- **Microsoft Clarity** — session replay + heatmaps, loaded on every HTML page.
+- **Discord webhook** — real-time owner pings on `user_signed_in`, `note_created`, `like_added`, `image_shared`. Uses `fetch(..., { keepalive: true })` to survive page unload after a share or sign-in.
 
-All three snippets are embedded directly in the `<head>` of every HTML page (homepage, grid, profile, share pages). Keep them in sync via `scripts/install_posthog.py` / `install_clarity.py` if you regenerate the HTML.
+All three snippets sit in the `<head>` of every HTML page. When regenerating pages, re-run `scripts/install_posthog.py` and `scripts/install_clarity.py` to inject them.
 
 ---
 
 ## Image Management
 
 ### Collection (`images/`)
-- WebP (stills), MP4/GIF (motion) — `type` field in manifest distinguishes them
+- WebP for stills, MP4 / GIF for motion — distinguished by the `type` field in the manifest
 - Max 1600 px longest side, quality 82
-- Filenames: lowercase, hyphen-separated, no spaces; `.webp` / `.mp4` / `.gif`
-- Currently ~897 files, ~259 MB (manifest has 847 entries — the delta is the `og-homepage.jpg`, thumbs, and a handful of files excluded by the manifest script)
+- Lowercase, hyphen-separated filenames; no spaces
+- ~900 files, ~260 MB
 
 ### Source folder
-- Raw images live in `~/Claude/ethos/` — outside the repo, never committed
+- Raw images live in `~/Claude/ethos/`, outside the repo
 - `scripts/sync-ethos.py` compresses new files to WebP and removes orphans from `images/`
-- `.ethos-manifest.json` tracks which files in `images/` were created by the sync script; manually added images are never touched
+- `.ethos-manifest.json` tracks files created by the sync script; manually added images are never touched
 
-### manifest.json
+### `manifest.json`
 ```json
 [
   { "file": "images/camdenthrasher.webp", "title": "Camden Thrasher", "date": "2024-03-10", "width": 1600, "height": 1067, "type": "image" },
   { "file": "images/clip.mp4", "title": null, "date": null, "width": 720, "height": 1280, "type": "video" }
 ]
 ```
-- `width` / `height` are baked in so the grid can compute layout without waiting on image decode
-- Many entries still have `null` title/date — filled in over time
 
 ### Adding / removing images
 ```bash
 cd ~/Claude/hello-world && bash sync.sh
 ```
-`sync.sh` runs the ethos sync, rebuilds the manifest, regenerates per-item share pages, then commits and pushes. A GitHub Action (`.github/workflows/sync-images.yml`) also regenerates `manifest.json` on any push that touches `images/`, as a safety net.
+`sync.sh` runs the ethos sync, rebuilds the manifest, regenerates the share pages, then commits and pushes. `.github/workflows/sync-images.yml` rebuilds the manifest server-side as a safety net whenever `images/` changes.
 
-### Storage strategy
-- Still in the GitHub repo (~260 MB). Comfortable under the 1 GB soft limit; no CDN needed yet.
-- When we do move, only `manifest.json` file paths change.
-
----
-
-## Status
-
-Every phase planned in the original PROJECT.md has shipped. The site is feature-complete for v1.
-
-| Phase | Scope | Status |
-|---|---|---|
-| 1 — Architecture | Images folder, `manifest.json`, shared `marquee.js`, `optimize.py` | ✅ shipped |
-| 2 — Full Collection | ~900 images, `sync.sh`, grid canvas with thumbnails + viewport culling, video/gif support, lightbox with prev/next, fullscreen carousel mode | ✅ shipped |
-| 3 — Social | Firebase auth, likes, notes, profile (liked + noted), per-item share pages with real OG previews | ✅ shipped |
-| 4 — Analytics / Distribution | PostHog event capture, Microsoft Clarity session replay, Discord owner-ping webhook, CI manifest refresh | ✅ shipped |
-| Navigation UX | Homepage slide-up doorway; grid nav pills (HOME + SIGN IN/username) with idle fade; `?image=` deep links into the lightbox | ✅ chosen and shipped |
-
-### What remains (no deadlines, nice-to-haves)
-- Backfilling `title` / `date` for the ~null entries in `manifest.json` as source material surfaces
-- CDN migration — deferred; trips only if the repo outgrows GitHub's soft limits (currently ~259 MB)
+### Storage
+- In-repo while size stays under the GitHub soft limit. Migrating to a CDN means updating the file-path prefix in `manifest.json`; everything else is unchanged.
