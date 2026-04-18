@@ -128,8 +128,8 @@
     const MAX_H    = 260;
     const MAX_W    = 380;
     const GAP      = 10;       // minimum px between any two images
-    const DENSITY  = 0.36;     // ratio of image area to canvas area (RSA jamming ~50%, stay well under)
-    const MAX_TRIES = 800;     // rejection attempts per image before giving up
+    const DENSITY  = 0.46;     // ratio of image area to canvas area (RSA jamming ~50%, stay well under)
+    const MAX_TRIES = 1200;    // rejection attempts per image before giving up
 
     // ── Pan / zoom ────────────────────────────────────────────────
     let zoom = 0.4, panX = 0, panY = 0;
@@ -178,11 +178,13 @@
 
       }).then(imageData => {
 
-        // 2. Shuffle order
+        // 2. Shuffle, then sort largest-first so big images claim space when canvas is emptiest.
+        // Positions are still fully random; only placement sequence changes.
         for (let i = imageData.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [imageData[i], imageData[j]] = [imageData[j], imageData[i]];
         }
+        imageData.sort((a, b) => b.w * b.h - a.w * a.h);
 
         // 3. Canvas size derived from actual image areas + target density
         const totalArea = imageData.reduce((s, d) => s + d.w * d.h, 0);
