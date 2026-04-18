@@ -42,20 +42,27 @@ def load_manifest(manifest_path):
 
 
 def get_image_files(images_dir):
-    """Get all WebP files in images directory"""
-    if not os.path.exists(images_dir):
-        return set()
+    """Get all WebP files in images directory, paired with sibling .mp4 if present.
 
-    webp_files = set()
-    for filename in os.listdir(images_dir):
-        if filename.endswith('.webp'):
-            webp_files.add(f'images/{filename}')
-    return webp_files
+    Returns a dict {webp_path: video_path_or_None}.
+    """
+    if not os.path.exists(images_dir):
+        return {}
+
+    files = {}
+    all_names = set(os.listdir(images_dir))
+    for filename in all_names:
+        if not filename.endswith('.webp'):
+            continue
+        stem = filename[:-len('.webp')]
+        video_name = f'{stem}.mp4'
+        video_path = f'images/{video_name}' if video_name in all_names else None
+        files[f'images/{filename}'] = video_path
+    return files
 
 
 def save_manifest(manifest_path, entries):
     """Save manifest.json with sorted entries"""
-    # Sort by file path for consistent output
     sorted_entries = sorted(entries, key=lambda x: x['file'])
 
     with open(manifest_path, 'w') as f:
@@ -72,18 +79,19 @@ def update_manifest():
     existing_entries = load_manifest(str(manifest_path))
     existing_map = {entry['file']: entry for entry in existing_entries}
 
-    # Get current image files
+    # Get current image files (with optional sibling video)
     current_images = get_image_files(str(images_dir))
 
     # Build updated entries
     updated_entries = []
     backfilled = 0
 
-    # Keep existing entries for images that still exist, add new ones
-    for image_file in sorted(current_images):
+    for image_file in sorted(current_images.keys()):
+        video_file = current_images[image_file]
         abs_path = script_dir / image_file
+
         if image_file in existing_map:
-            entry = existing_map[image_file]
+            entry = dict(existing_map[image_file])
             # Backfill dimensions for entries written before we tracked them
             if 'w' not in entry or 'h' not in entry:
                 w, h = read_dimensions(abs_path)
@@ -91,20 +99,25 @@ def update_manifest():
                     entry['w'] = w
                     entry['h'] = h
                     backfilled += 1
-            updated_entries.append(entry)
         else:
-            # Create new entry with auto-generated title
             filename = os.path.basename(image_file)
             w, h = read_dimensions(abs_path)
-            new_entry = {
+            entry = {
                 'file': image_file,
                 'title': sanitize_filename(filename),
                 'date': datetime.now().strftime('%Y-%m-%d'),
             }
             if w and h:
-                new_entry['w'] = w
-                new_entry['h'] = h
-            updated_entries.append(new_entry)
+                entry['w'] = w
+                entry['h'] = h
+
+        # Sync video field with current state on disk
+        if video_file:
+            entry['video'] = video_file
+        else:
+            entry.pop('video', None)
+
+        updated_entries.append(entry)
 
     # Save updated manifest
     save_manifest(str(manifest_path), updated_entries)
