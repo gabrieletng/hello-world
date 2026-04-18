@@ -1,7 +1,7 @@
 // Firebase initialization and functions for auth + Firestore
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -28,20 +28,6 @@ googleProvider.setCustomParameters({
 // State
 let currentUser = null;
 
-// Handle redirect result from Google Sign-In
-getRedirectResult(auth)
-  .then((result) => {
-    if (result) {
-      currentUser = result.user;
-      console.log("Redirect sign-in successful:", result.user.email);
-    }
-  })
-  .catch((error) => {
-    if (error.code !== 'auth/popup-closed-by-user') {
-      console.error("Redirect sign-in error:", error);
-    }
-  });
-
 // Authentication functions
 export async function signInGoogle() {
   try {
@@ -50,18 +36,19 @@ export async function signInGoogle() {
     console.log("Popup sign-in successful");
     return result.user;
   } catch (error) {
-    // If popup is blocked, fall back to redirect-based sign-in
+    // If popup is blocked, show helpful message
     if (error.code === 'auth/popup-blocked') {
-      console.log("Popup blocked, attempting redirect sign-in...");
-      try {
-        await signInWithRedirect(auth, googleProvider);
-        // signInWithRedirect will redirect the page, so we don't return here
-        console.log("Redirect to Google Sign-In initiated");
-        return null;
-      } catch (redirectError) {
-        console.error("Redirect sign-in error:", redirectError);
-        throw redirectError;
-      }
+      console.error("Popups are blocked. Please allow popups for this site or open it in a browser with less strict popup policies.");
+
+      // Show user-friendly error message
+      const message = 'Sign-in requires popup windows. Please:\n\n' +
+        '1. Allow popups for this site in your browser settings\n' +
+        '2. Or open the site in a browser with less strict policies (like Chrome)\n' +
+        '3. Or visit the deployed version at https://gabrieletng.github.io/hello-world/\n\n' +
+        'For development: Check your browser popup blocker settings.';
+
+      alert(message);
+      throw new Error('Popups blocked - please enable popups or use a less restrictive browser');
     }
     console.error("Sign-in error:", error.code, error.message);
     throw error;
