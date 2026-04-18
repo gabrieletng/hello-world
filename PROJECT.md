@@ -6,7 +6,13 @@ Live: https://gabrieletng.github.io/hello-world/
 
 ## Concept
 
-A photography collection website. The homepage is a marquee tease with a "doorway" into the full collection — a zoomable, pannable canvas of ~850 images. Signed-in visitors can like images, leave notes, and share individual pieces; each image gets a per-URL share page with a proper OG preview.
+A photography collection website. The homepage is a marquee tease with a "doorway" into the full collection — a zoomable, pannable canvas of ~850 images. Signed-in visitors can like images, leave notes, and share individual pieces; each image gets a per-URL share page with a proper OG preview. The site tracks behaviour end-to-end via PostHog, Microsoft Clarity, and a Discord webhook that pings the owner's phone on sign-ins, notes, likes, and shares.
+
+### What the project is **not** (concepts we tried and discarded)
+
+- **Rotating / multi landing page.** The original plan was several landing pages, each a curated 12-image "story" with its own centred text, cycling the entry point. Dropped in favour of a single homepage acting as a doorway into the collection. Every image gets its moment inside the grid and the carousel mode instead of on a dedicated page.
+- **Separate `explore/carousel.html`.** A standalone chronological/random carousel page. The grid + lightbox + fullscreen slideshow mode cover this better — the carousel is now a *mode* of the lightbox rather than a page.
+- **Multiple `js/marquee.js` consumers.** The shared engine is still factored out, but `index.html` is its only caller now.
 
 ---
 
@@ -44,10 +50,7 @@ A photography collection website. The homepage is a marquee tease with a "doorwa
 └── PROJECT.md
 ```
 
-Notes on what's **not** here:
-- No `explore/carousel.html` page — carousel shipped instead as a **fullscreen slideshow mode inside the lightbox** on grid + profile (see below).
-- No `landing/` folder — the multi-landing-page idea was dropped in favour of a single homepage that acts as a doorway.
-- No `js/marquee.js` consumers beyond `index.html`.
+See **"What the project is not"** above for the concepts that explain the absent `landing/`, `explore/carousel.html`, and multi-consumer marquee.
 
 ---
 
@@ -156,26 +159,18 @@ cd ~/Claude/hello-world && bash sync.sh
 
 ---
 
-## Development Phases
+## Status
 
-### Phase 1 — Architecture ✅
-Moved images, extracted `js/marquee.js`, created `manifest.json`, added `scripts/optimize.py`.
+Every phase planned in the original PROJECT.md has shipped. The site is feature-complete for v1.
 
-### Phase 2 — Full Collection ✅
-- ~900 images compressed
-- `sync.sh` pipeline (sync ethos → manifest → share pages → commit → push)
-- Grid: zoomable/pannable canvas, 600-px thumbnails, viewport culling, kinetic inertia, video/gif support, lightbox with prev/next
-- **Carousel**: shipped as a fullscreen slideshow mode inside the lightbox (not a separate page) — play/pause, speed cycler, progress bar, idle auto-hide, keyboard controls
+| Phase | Scope | Status |
+|---|---|---|
+| 1 — Architecture | Images folder, `manifest.json`, shared `marquee.js`, `optimize.py` | ✅ shipped |
+| 2 — Full Collection | ~900 images, `sync.sh`, grid canvas with thumbnails + viewport culling, video/gif support, lightbox with prev/next, fullscreen carousel mode | ✅ shipped |
+| 3 — Social | Firebase auth, likes, notes, profile (liked + noted), per-item share pages with real OG previews | ✅ shipped |
+| 4 — Analytics / Distribution | PostHog event capture, Microsoft Clarity session replay, Discord owner-ping webhook, CI manifest refresh | ✅ shipped |
+| Navigation UX | Homepage slide-up doorway; grid nav pills (HOME + SIGN IN/username) with idle fade; `?image=` deep links into the lightbox | ✅ chosen and shipped |
 
-### Phase 3 — Social ✅
-Firebase auth, likes, notes (Instagram-style UI), profile page with liked + noted grids, per-item share pages with real OG previews, lightbox wired to all of it.
-
-### Phase 4 — Distribution (ongoing)
-- Analytics: PostHog + Clarity + Discord webhook ✅
-- CDN migration: deferred until repo size forces it
-- Image pipeline refinements: title/date backfill on the manifest
-
-### Open / TBD
-- Title + date backfill on ~null manifest entries
-- Whether to expose a chronological view (grid is stable-seed, not time-sorted)
-- Polishing the profile page's empty state
+### What remains (no deadlines, nice-to-haves)
+- Backfilling `title` / `date` for the ~null entries in `manifest.json` as source material surfaces
+- CDN migration — deferred; trips only if the repo outgrows GitHub's soft limits (currently ~259 MB)
