@@ -413,7 +413,7 @@
 
     function applyTransform() {
       canvas.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
-      scheduleReveal();
+      revealViewport();
     }
 
     function setInitialView(w, h) {
@@ -433,10 +433,13 @@
     // detach: once loaded, an image stays so panning back doesn't flicker.
     // Offscreen items that have never been reached remain empty divs.
     let placedItems = [];
-    let revealRaf = null;
 
+    // Called synchronously from applyTransform (every pan/zoom frame) and on
+    // resize. Cheap: ~862 bbox comparisons, creates <img> only for items that
+    // haven't been revealed yet. Running sync (vs rAF-coalesced) guarantees
+    // the final pan state always triggers a reveal — mobile browsers sometimes
+    // throttle rAF under load and leave in-view items unloaded.
     function revealViewport() {
-      revealRaf = null;
       const marginX = window.innerWidth  / zoom;   // 1 viewport-width in canvas units
       const marginY = window.innerHeight / zoom;
       const left   = -panX / zoom - marginX;
@@ -459,12 +462,7 @@
       }
     }
 
-    function scheduleReveal() {
-      if (revealRaf != null) return;
-      revealRaf = requestAnimationFrame(revealViewport);
-    }
-
-    window.addEventListener('resize', scheduleReveal);
+    window.addEventListener('resize', revealViewport);
 
     // ── Heart SVG ─────────────────────────────────────────────────
     const PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
