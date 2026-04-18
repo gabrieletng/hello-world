@@ -230,50 +230,6 @@
       word-break: break-word;
     }
 
-    /* ── Lightbox ── */
-    #lightbox {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.93);
-      z-index: 100;
-      align-items: flex-start;
-      justify-content: center;
-      cursor: zoom-out;
-      overflow-y: auto;
-    }
-    #lightbox.open { display: flex; }
-    #lightbox-close {
-      position: fixed;
-      top: 16px;
-      right: 20px;
-      color: #fff;
-      font-size: 26px;
-      cursor: pointer;
-      line-height: 1;
-      z-index: 110;
-    }
-    #lightbox-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 18px;
-      max-width: 95vw;
-      padding: 56px 20px 40px;
-      cursor: default;
-    }
-    #lightbox-img, #lightbox-video {
-      max-width: 92vw;
-      max-height: 78vh;
-      object-fit: contain;
-    }
-    #lightbox-video { background: #000; }
-    #lightbox-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px;
-      letter-spacing: 0.08em;
-      color: rgba(255,255,255,0.85);
-    }
   </style>
 </head>
 <body data-state="loading">
@@ -331,15 +287,6 @@
       <div id="noted-grid" class="grid"></div>
       <div id="noted-empty" class="empty" style="display:none;">No notes yet — write one from any image.</div>
     </section>
-  </div>
-
-  <div id="lightbox">
-    <span id="lightbox-close">&#x2715;</span>
-    <div id="lightbox-container" onclick="event.stopPropagation()">
-      <img id="lightbox-img" src="" alt="" style="display:none;" />
-      <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata"></video>
-      <div id="lightbox-title"></div>
-    </div>
   </div>
 
   <script type="module">
@@ -502,55 +449,19 @@
           item.appendChild(badge);
         }
 
-        item.addEventListener('click', () => openLightbox(entry));
+        item.addEventListener('click', () => openInGrid(entry));
         frag.appendChild(item);
       }
       gridEl.appendChild(frag);
     }
 
-    // ── Lightbox ──
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightbox-img');
-    const lightboxVideo = document.getElementById('lightbox-video');
-    const lightboxTitle = document.getElementById('lightbox-title');
-
-    function openLightbox(entry) {
-      const filename = (entry.video || entry.file).split('/').pop();
-      if (entry.video) {
-        lightboxImg.style.display = 'none';
-        lightboxImg.src = '';
-        lightboxVideo.style.display = 'block';
-        lightboxVideo.src = `../${entry.video}`;
-        lightboxVideo.poster = `../${entry.file}`;
-        lightboxVideo.load();
-        lightboxVideo.play().catch(() => {});
-      } else {
-        lightboxVideo.pause();
-        lightboxVideo.removeAttribute('src');
-        lightboxVideo.load();
-        lightboxVideo.style.display = 'none';
-        lightboxImg.style.display = 'block';
-        lightboxImg.src = `../${entry.file}`;
-        lightboxImg.alt = filename;
-      }
-      lightboxTitle.textContent = entry.title || filename;
-      lightbox.classList.add('open');
+    // Open an image in the grid's lightbox — reuses like, share, notes,
+    // prev/next for free. Browser back returns to the profile.
+    function openInGrid(entry) {
+      const url = new URL('../explore/grid.html', window.location.href);
+      url.searchParams.set('image', entry.file);
+      window.location.href = url.toString();
     }
-
-    function closeLightbox() {
-      lightbox.classList.remove('open');
-      lightboxVideo.pause();
-      lightboxVideo.removeAttribute('src');
-      lightboxVideo.load();
-      lightboxImg.src = '';
-    }
-
-    lightbox.addEventListener('click', e => {
-      if (e.target === lightbox || e.target.id === 'lightbox-close') closeLightbox();
-    });
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
-    });
   </script>
 </body>
 </html>
