@@ -33,23 +33,8 @@ export async function signInGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     currentUser = result.user;
-    console.log("Popup sign-in successful");
     return result.user;
   } catch (error) {
-    // If popup is blocked, show helpful message
-    if (error.code === 'auth/popup-blocked') {
-      console.error("Popups are blocked. Please allow popups for this site or open it in a browser with less strict popup policies.");
-
-      // Show user-friendly error message
-      const message = 'Sign-in requires popup windows. Please:\n\n' +
-        '1. Allow popups for this site in your browser settings\n' +
-        '2. Or open the site in a browser with less strict policies (like Chrome)\n' +
-        '3. Or visit the deployed version at https://gabrieletng.github.io/hello-world/\n\n' +
-        'For development: Check your browser popup blocker settings.';
-
-      alert(message);
-      throw new Error('Popups blocked - please enable popups or use a less restrictive browser');
-    }
     console.error("Sign-in error:", error.code, error.message);
     throw error;
   }
