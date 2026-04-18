@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Collection — Grid</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-height: 100vh;
+      background: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ── Masonry grid ───────────────────────────────────────────────── */
+    #grid {
+      columns: 3;
+      column-gap: 6px;
+      padding: 6px;
+    }
+
+    @media (max-width: 900px)  { #grid { columns: 2; } }
+    @media (max-width: 500px)  { #grid { columns: 1; } }
+
+    .grid-item {
+      break-inside: avoid;
+      margin-bottom: 6px;
+      overflow: hidden;
+      cursor: zoom-in;
+      position: relative;
+    }
+
+    .grid-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: opacity 0.2s;
+    }
+
+    /* Like button */
+    .like-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(255,255,255,0.9);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+    }
+    .grid-item:hover .like-btn {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .like-btn.liked { background: rgba(255,255,255,1); }
+
+    /* ── Lightbox ───────────────────────────────────────────────────── */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    #lightbox.open { display: flex; }
+
+    #lightbox img {
+      max-width: 92vw;
+      max-height: 92vh;
+      object-fit: contain;
+      display: block;
+      cursor: default;
+    }
+
+    #lightbox-close {
+      position: fixed;
+      top: 16px;
+      right: 20px;
+      color: #fff;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+      user-select: none;
+    }
+
+    /* ── Loading state ──────────────────────────────────────────────── */
+    body { opacity: 0; transition: opacity 0.6s; }
+    body.ready { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div id="grid"></div>
+
+  <div id="lightbox">
+    <span id="lightbox-close">&#x2715;</span>
+    <img id="lightbox-img" src="" alt="" />
+  </div>
+
+  <script>
+    // Load manifest and build grid
+    fetch('../manifest.json')
+      .then(r => r.json())
+      .then(manifest => {
+        const grid = document.getElementById('grid');
+
+        manifest.forEach(entry => {
+          const item = document.createElement('div');
+          item.className = 'grid-item';
+
+          const img = document.createElement('img');
+          img.src     = `../${entry.file}`;
+          img.alt     = entry.title || '';
+          img.loading = 'lazy';
+          img.decoding = 'async';
+
+          const likeBtn = document.createElement('button');
+          likeBtn.className = 'like-btn';
+          likeBtn.textContent = '♡';
+          likeBtn.title = 'Like';
+          likeBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            likeBtn.classList.toggle('liked');
+            likeBtn.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+          });
+
+          item.appendChild(img);
+          item.appendChild(likeBtn);
+
+          item.addEventListener('click', () => openLightbox(`../${entry.file}`, entry.title));
+
+          grid.appendChild(item);
+        });
+
+        document.body.classList.add('ready');
+      });
+
+    // Lightbox
+    const lightbox    = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+
+    function openLightbox(src, title) {
+      lightboxImg.src = src;
+      lightboxImg.alt = title || '';
+      lightbox.classList.add('open');
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      lightboxImg.src = '';
+    }
+
+    lightbox.addEventListener('click', e => {
+      if (e.target === lightbox) closeLightbox();
+    });
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+  </script>
+</body>
+</html>
