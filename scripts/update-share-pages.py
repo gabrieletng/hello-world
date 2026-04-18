@@ -32,13 +32,12 @@ TEMPLATE = """<!DOCTYPE html>
 <meta property="og:description" content="{subtitle}">
 <meta property="og:url" content="{share_url}">
 <meta property="og:image" content="{image_url}">
-<meta property="og:image:type" content="image/webp">
-{og_dims}
+<meta property="og:image:type" content="image/jpeg">
+
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{title} — {subtitle}">
 <meta name="twitter:image" content="{image_url}">
 
-<link rel="canonical" href="{redirect_url}">
 <meta http-equiv="refresh" content="0; url={redirect_url}">
 <style>body{{font-family:system-ui,sans-serif;margin:2rem;color:#666}}</style>
 </head>
@@ -57,17 +56,9 @@ def stem_for(file_path: str) -> str:
 def render_page(entry: dict) -> str:
     stem = stem_for(entry['file'])
     title = entry.get('title') or stem
-    image_url = f"{BASE_URL}/{entry['file']}"
+    image_url = f"{BASE_URL}/images/og/{stem}.jpg"
     share_url = f"{BASE_URL}/explore/share/{stem}.html"
     redirect_url = f"{BASE_URL}/explore/grid.html?image={entry['file']}"
-
-    if entry.get('w') and entry.get('h'):
-        og_dims = (
-            f'<meta property="og:image:width" content="{entry["w"]}">\n'
-            f'<meta property="og:image:height" content="{entry["h"]}">\n'
-        )
-    else:
-        og_dims = ''
 
     return TEMPLATE.format(
         title=html.escape(title, quote=True),
@@ -76,7 +67,6 @@ def render_page(entry: dict) -> str:
         image_url=html.escape(image_url, quote=True),
         redirect_url=html.escape(redirect_url, quote=True),
         redirect_js=json.dumps(redirect_url),
-        og_dims=og_dims,
     )
 
 

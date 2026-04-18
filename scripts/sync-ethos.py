@@ -2,9 +2,11 @@
 """
 Sync ethos/ source media → images/
 
-Images: compressed to WebP (max 1600px, quality 82) + 600px thumbnail in images/thumbs/.
+Images: compressed to WebP (max 1600px, quality 82) + 600px thumbnail in images/thumbs/
+plus a JPEG preview in images/og/ for link-share thumbnails (Apple scrapers
+don't reliably read WebP).
 Videos & GIFs: compressed to MP4 (h.264, max 1280px, CRF 28, 64k mono AAC)
-plus a WebP poster frame + thumbnail of the poster in images/thumbs/.
+plus a WebP poster frame + thumbnail + OG JPEG of the poster.
 
 Only files this script previously created are removed when their source is gone
 (tracked in .ethos-manifest.json — manually added images are never touched).
@@ -31,6 +33,8 @@ IMG_MAX_DIM = 1600
 IMG_QUALITY = 82
 THUMB_DIM = 600
 THUMB_QUALITY = 78
+OG_DIM = 500
+OG_QUALITY = 78
 
 VIDEO_MAX_W = 1280
 VIDEO_CRF = 28
@@ -65,6 +69,21 @@ def make_thumb(src: Path, dest: Path) -> bool:
             img.save(dest, 'WEBP', quality=THUMB_QUALITY, method=4)
     except Exception as e:
         print(f"  THUMB ERROR {src.name}: {e}")
+        return False
+    return True
+
+
+def make_og_jpeg(src: Path, dest: Path) -> bool:
+    """Make a JPEG preview for link-share og:image — WebP isn't reliably
+    supported by Apple's LinkPresentation scraper."""
+    try:
+        with Image.open(src) as img:
+            img = img.convert('RGB')
+            img.thumbnail((OG_DIM, OG_DIM), Image.LANCZOS)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            img.save(dest, 'JPEG', quality=OG_QUALITY, optimize=True, progressive=True)
+    except Exception as e:
+        print(f"  OG ERROR {src.name}: {e}")
         return False
     return True
 
@@ -134,8 +153,10 @@ def main():
 
     images_dir = repo_root / 'images'
     thumbs_dir = images_dir / 'thumbs'
+    og_dir = images_dir / 'og'
     images_dir.mkdir(exist_ok=True)
     thumbs_dir.mkdir(exist_ok=True)
+    og_dir.mkdir(exist_ok=True)
 
     ethos_manifest_path = repo_root / '.ethos-manifest.json'
     owned_stems = load_ethos_manifest(ethos_manifest_path)
@@ -153,18 +174,22 @@ def main():
     for stem, (kind, src) in expected.items():
         webp = images_dir / f"{stem}.webp"
         thumb = thumbs_dir / f"{stem}.webp"
+        og_jpg = og_dir / f"{stem}.jpg"
 
         if kind == 'image':
             if webp.exists():
                 owned_stems.add(stem)
                 if not thumb.exists():
                     make_thumb(webp, thumb)
+                if not og_jpg.exists():
+                    make_og_jpeg(webp, og_jpg)
                 continue
             print(f"+ {webp.name}  ", end='', flush=True)
             if convert_image(src, webp):
                 before, after = src.stat().st_size, webp.stat().st_size
                 print(f"{before // 1024}KB → {after // 1024}KB")
                 make_thumb(webp, thumb)
+                make_og_jpeg(webp, og_jpg)
                 owned_stems.add(stem)
                 added += 1
             else:
@@ -175,6 +200,8 @@ def main():
                 owned_stems.add(stem)
                 if not thumb.exists():
                     make_thumb(webp, thumb)
+                if not og_jpg.exists():
+                    make_og_jpeg(webp, og_jpg)
                 continue
             print(f"+ {mp4.name} (+ poster)  ", end='', flush=True)
             if convert_video(src, mp4, webp):
@@ -182,15 +209,21 @@ def main():
                 after = mp4.stat().st_size + webp.stat().st_size
                 print(f"{before // 1024}KB → {after // 1024}KB")
                 make_thumb(webp, thumb)
+                make_og_jpeg(webp, og_jpg)
                 owned_stems.add(stem)
                 added += 1
             else:
                 errors += 1
 
-    # Remove orphans (full-res, mp4, thumb) for sources that no longer exist
+    # Remove orphans (full-res, mp4, thumb, og) for sources that no longer exist
     removed = 0
     for stem in sorted(owned_stems - set(expected.keys())):
-        for artifact in [images_dir / f"{stem}.webp", images_dir / f"{stem}.mp4", thumbs_dir / f"{stem}.webp"]:
+        for artifact in [
+            images_dir / f"{stem}.webp",
+            images_dir / f"{stem}.mp4",
+            thumbs_dir / f"{stem}.webp",
+            og_dir / f"{stem}.jpg",
+        ]:
             if artifact.exists():
                 print(f"- {artifact.name}")
                 artifact.unlink()
