@@ -441,19 +441,23 @@
       gap: 28px;
     }
     .nav-link {
+      display: inline-flex;
+      align-items: center;
+      height: 56px;
       font-family: 'Bebas Neue', sans-serif;
       font-size: 15px;
+      line-height: 1;
       letter-spacing: 0.32em;
       color: rgba(255,255,255,0.78);
       background: none;
       border: none;
-      padding: 10px 0;
+      padding: 0;
       cursor: pointer;
       white-space: nowrap;
       transition: color 0.25s;
     }
     .nav-link:hover { color: #fff; }
-    .nav-link .arrow { display: inline-block; margin-right: 10px; }
+    .nav-link .arrow { margin-right: 10px; }
     @media (max-width: 460px) {
       #nav-colophon { display: none; }
       #nav-strip { justify-content: flex-end; padding: 0 20px; }
@@ -1147,6 +1151,10 @@
     window.addEventListener('mousedown', showNav);
     window.addEventListener('touchstart', showNav, { passive: true });
     window.addEventListener('touchmove', showNav, { passive: true });
+
+    // On first load, linger longer so the nav is discoverable.
+    navStrip.classList.add('visible');
+    navTimer = setTimeout(() => navStrip.classList.remove('visible'), 10000);
 
     navHome.addEventListener('click', e => {
       e.stopPropagation();
