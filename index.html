@@ -8,20 +8,11 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
+    html, body {
       width: 100vw;
       height: 100vh;
       overflow: hidden;
       background: #fff;
-    }
-
-    #overlay {
-      position: fixed;
-      inset: 0;
-      background: #fff;
-      z-index: 5;
-      pointer-events: none;
-      transition: opacity 5s ease;
     }
 
     #center-text {
@@ -36,23 +27,27 @@
       line-height: 1.0;
       letter-spacing: 0.06em;
       white-space: nowrap;
-      pointer-events: none;
       z-index: 10;
-    }
-
-    .card {
-      position: fixed;
-      left: 0;
-      top: 0;
-      width: 240px;
-      height: 180px;
-      border-radius: 3px;
-      overflow: hidden;
       pointer-events: none;
-      will-change: transform;
     }
 
-    .card img {
+    .slot {
+      position: fixed;
+      overflow: hidden;
+      opacity: 0;
+      transform: scale(0.96);
+      transition:
+        opacity   1.8s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 2.0s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+
+    .slot.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .slot img {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -61,7 +56,6 @@
   </style>
 </head>
 <body>
-  <div id="overlay"></div>
   <div id="center-text">THIS IS A STORY OF<br>LOVE AND DEATH</div>
 
   <script>
@@ -80,131 +74,91 @@
       "mark busch.jpg"
     ];
 
-    const CARD_W = 240, CARD_H = 180;
-    let W = window.innerWidth, H = window.innerHeight;
-    window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; });
+    // Preload so fade-ins never flash.
+    SRCS.forEach(s => { const i = new Image(); i.src = s; });
 
-    // 10 lanes defined as [entryEdge, entryFrac, exitEdge, exitFrac]
-    // Edges: 0=top, 1=right, 2=bottom, 3=left  |  frac = 0..1 along that edge
-    // Each lane is a slightly diagonal path that fully crosses the screen.
-    // Direction variety: some go top→bottom, some left→right, some diagonal.
-    const LANE_DEFS = [
-      [0, 0.15, 2, 0.28],   // top→bottom, slight right drift
-      [0, 0.82, 2, 0.62],   // top→bottom, slight left drift
-      [3, 0.14, 1, 0.30],   // left→right, slight down drift
-      [3, 0.78, 1, 0.62],   // left→right, slight up drift
-      [1, 0.16, 3, 0.32],   // right→left, slight down drift
-      [1, 0.72, 3, 0.58],   // right→left, slight up drift
-      [2, 0.18, 0, 0.32],   // bottom→top, slight right drift
-      [2, 0.78, 0, 0.62],   // bottom→top, slight left drift
-      [0, 0.50, 1, 0.78],   // top-center → right-bottom (diagonal)
-      [3, 0.46, 2, 0.72],   // left-center → bottom-right (diagonal)
+    // Editorial composition: 8 slots around the center text.
+    // Mixed aspect ratios (portrait / landscape / square) to feel curated
+    // rather than gridded. Center band kept clear for the title.
+    const SLOTS = [
+      { x: 0.030, y: 0.050, w: 0.200, h: 0.300 }, // top-left, portrait
+      { x: 0.415, y: 0.030, w: 0.200, h: 0.180 }, // top-center, landscape
+      { x: 0.775, y: 0.070, w: 0.200, h: 0.240 }, // top-right, landscape
+      { x: 0.020, y: 0.400, w: 0.140, h: 0.260 }, // left-middle, portrait
+      { x: 0.840, y: 0.420, w: 0.140, h: 0.220 }, // right-middle, portrait
+      { x: 0.040, y: 0.720, w: 0.220, h: 0.240 }, // bottom-left, landscape
+      { x: 0.400, y: 0.770, w: 0.200, h: 0.200 }, // bottom-center, square
+      { x: 0.760, y: 0.700, w: 0.200, h: 0.270 }, // bottom-right, portrait
     ];
 
-    const laneLastCard = new Array(LANE_DEFS.length).fill(null);
-    let cards = [];
+    const active = new Map(); // slotIdx -> { src, el }
 
-    // Returns card top-left start position for a given edge+fraction
-    function edgePt(edge, frac) {
-      const cx = frac * W, cy = frac * H;
-      switch (edge) {
-        case 0: return { x: cx - CARD_W / 2, y: -CARD_H };
-        case 1: return { x: W,               y: cy - CARD_H / 2 };
-        case 2: return { x: cx - CARD_W / 2, y: H };
-        case 3: return { x: -CARD_W,          y: cy - CARD_H / 2 };
-      }
+    const usedSrcs = () => new Set([...active.values()].map(a => a.src));
+
+    function pickSrc() {
+      const used = usedSrcs();
+      const pool = SRCS.filter(s => !used.has(s));
+      return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
     }
 
-    function canSpawnOnLane(li) {
-      const lc = laneLastCard[li];
-      if (!lc) return true;
-      if (!cards.includes(lc)) return true;        // previous card has exited
-      return lc.distTraveled > CARD_W + 60;        // enough gap from entry
-    }
+    function fillSlot(slotIdx) {
+      if (active.has(slotIdx)) return;
+      const src = pickSrc();
+      if (!src) return;
 
-    // preProgress: 0 = start at entry edge, 0.5 = start mid-path, etc.
-    function spawnOnLane(li, preProgress = 0) {
-      const active = new Set(cards.map(c => c.src));
-      const available = SRCS.filter(s => !active.has(s));
-      if (!available.length) return false;
+      const s = SLOTS[slotIdx];
+      const el = document.createElement('div');
+      el.className = 'slot';
+      el.style.left   = (s.x * 100) + '%';
+      el.style.top    = (s.y * 100) + '%';
+      el.style.width  = (s.w * 100) + '%';
+      el.style.height = (s.h * 100) + '%';
 
-      const [ee, ef, xe, xf] = LANE_DEFS[li];
-      const entry = edgePt(ee, ef);
-      const exitPt = edgePt(xe, xf);
-
-      const ex = entry.x + CARD_W / 2, ey = entry.y + CARD_H / 2;
-      const xx = exitPt.x + CARD_W / 2, xy = exitPt.y + CARD_H / 2;
-      const totalLen = Math.hypot(xx - ex, xy - ey);
-      const speed = 0.6 + Math.random() * 0.25;
-      const vx = ((xx - ex) / totalLen) * speed;
-      const vy = ((xy - ey) / totalLen) * speed;
-
-      // Start position: interpolate along the full path by preProgress
-      const startX = entry.x + preProgress * (exitPt.x - entry.x);
-      const startY = entry.y + preProgress * (exitPt.y - entry.y);
-
-      const src = available[Math.floor(Math.random() * available.length)];
-
-      const div = document.createElement('div');
-      div.className = 'card';
-      // Pre-placed cards appear instantly; fresh entries fade in
-      const transition = preProgress > 0 ? 'none' : 'opacity 0.5s';
-      div.style.cssText = `left:0;top:0;opacity:0;transform:translate(${startX}px,${startY}px);transition:${transition};`;
       const img = document.createElement('img');
       img.src = src;
-      img.alt = '';
-      div.appendChild(img);
-      document.body.appendChild(div);
-      requestAnimationFrame(() => { div.style.opacity = '1'; });
+      el.appendChild(img);
+      document.body.appendChild(el);
 
-      const card = { el: div, x: startX, y: startY, vx, vy, src, distTraveled: preProgress * totalLen };
-      cards.push(card);
-      laneLastCard[li] = card;
-      return true;
+      active.set(slotIdx, { src, el });
+
+      const reveal = () => requestAnimationFrame(() =>
+        requestAnimationFrame(() => el.classList.add('visible'))
+      );
+      if (img.complete) reveal();
+      else img.addEventListener('load', reveal, { once: true });
     }
 
-    function loop() {
-      for (let i = cards.length - 1; i >= 0; i--) {
-        const c = cards[i];
-        c.x += c.vx;
-        c.y += c.vy;
-        c.distTraveled += Math.hypot(c.vx, c.vy);
-        c.el.style.transform = `translate(${c.x}px,${c.y}px)`;
-
-        if (c.x < -CARD_W - 20 || c.x > W + 20 || c.y < -CARD_H - 20 || c.y > H + 20) {
-          c.el.remove();
-          cards.splice(i, 1);
-        }
-      }
-      requestAnimationFrame(loop);
+    function clearSlot(slotIdx) {
+      const a = active.get(slotIdx);
+      if (!a) return;
+      a.el.classList.remove('visible');
+      active.delete(slotIdx);
+      const toRemove = a.el;
+      setTimeout(() => toRemove.remove(), 2200); // after fade-out completes
     }
 
-    // Initial fill: place one card per lane at a random position along its path,
-    // simulating mid-traffic from the very first frame.
-    LANE_DEFS.forEach((_, li) => {
-      const preProgress = 0.05 + Math.random() * 0.80; // spread across the path
-      spawnOnLane(li, preProgress);
+    // Initial reveal: one image at a time, in a random order.
+    // Paced so the experience feels like pages being turned.
+    const order = SLOTS.map((_, i) => i).sort(() => Math.random() - 0.5);
+    const FIRST_DELAY = 1100;   // time the title sits alone on white
+    const STEP        = 1100;   // time between successive reveals
+    order.forEach((slotIdx, i) => {
+      setTimeout(() => fillSlot(slotIdx), FIRST_DELAY + i * STEP);
     });
 
-    // Ongoing: refill lanes as cards exit
-    function schedule() {
-      const order = LANE_DEFS.map((_, i) => i).sort(() => Math.random() - 0.5);
-      for (const li of order) {
-        if (canSpawnOnLane(li)) {
-          spawnOnLane(li); // always enter from the edge
-          break;
-        }
+    // After all slots are filled, drift into a calm cycling rhythm:
+    // one slot at a time fades out, pauses, then another image fades in.
+    const cycleStart = FIRST_DELAY + order.length * STEP + 2500;
+    function cycle() {
+      const filled = [...active.keys()];
+      if (filled.length) {
+        const slotIdx = filled[Math.floor(Math.random() * filled.length)];
+        clearSlot(slotIdx);
+        setTimeout(() => fillSlot(slotIdx), 2400); // fade-out + short breath
       }
-      setTimeout(schedule, 280 + Math.random() * 250);
+      setTimeout(cycle, 5500 + Math.random() * 3000); // 5.5–8.5s between swaps
     }
-    setTimeout(schedule, 500);
-
-    requestAnimationFrame(loop);
-
-    // Fade out the white overlay to reveal images
-    requestAnimationFrame(() => {
-      document.getElementById('overlay').style.opacity = '0';
-    });
+    setTimeout(cycle, cycleStart);
   </script>
 </body>
 </html>
