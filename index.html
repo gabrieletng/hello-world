@@ -167,11 +167,12 @@
 
     // The down arrow is literal: the page slides up, the dark collection
     // colour beneath is revealed, then we navigate.
-    document.getElementById('portal-link').addEventListener('click', e => {
+    const portalLink = document.getElementById('portal-link');
+    portalLink.addEventListener('click', e => {
       e.preventDefault();
       document.body.classList.add('leaving');
       setTimeout(() => {
-        window.location.href = e.currentTarget.href;
+        window.location.href = portalLink.href;
       }, 820);
     });
   </script>
