@@ -404,23 +404,22 @@
     const MAX_TRIES = 1200;    // rejection attempts per image before giving up
 
     // ── Pan / zoom ────────────────────────────────────────────────
-    let zoom = 0.7, panX = 0, panY = 0;
+    let zoom = 0.45, panX = 0, panY = 0;
     const MIN_ZOOM = 0.05, MAX_ZOOM = 2.5;
-    const INITIAL_ZOOM = 0.7;            // start zoomed-in so few items are on-screen
-    const CULL_MARGIN = 400;             // px around viewport (canvas coords) to keep loaded
+    const INITIAL_ZOOM = 0.45;           // middle ground: see ~150 items, each at thumb size
 
     const stage  = document.getElementById('stage');
     const canvas = document.getElementById('canvas');
 
     function applyTransform() {
       canvas.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
-      scheduleCull();
+      scheduleReveal();
     }
 
     function setInitialView(w, h) {
       zoom = INITIAL_ZOOM;
       // Center on a random point inside the canvas so every visit opens on a
-      // different neighborhood — still "zoomed-in", not the full bird's-eye.
+      // different neighborhood.
       const cx = w * (0.25 + Math.random() * 0.5);
       const cy = h * (0.25 + Math.random() * 0.5);
       panX = window.innerWidth / 2  - cx * zoom;
@@ -428,42 +427,42 @@
       applyTransform();
     }
 
-    // ── Viewport culling ──────────────────────────────────────────
-    // Only attach <img src> for items whose rect intersects the visible
-    // viewport (+ margin). Offscreen items stay as empty divs → no decoded
-    // bitmap, no compositor layer, cheap to pan/zoom past.
+    // ── Progressive reveal (lazy-load only) ──────────────────────
+    // Items whose rect intersects the viewport (+ 1 viewport of margin)
+    // get an <img src> attached the first time they're visible. We never
+    // detach: once loaded, an image stays so panning back doesn't flicker.
+    // Offscreen items that have never been reached remain empty divs.
     let placedItems = [];
-    let cullRaf = null;
+    let revealRaf = null;
 
-    function cullViewport() {
-      cullRaf = null;
-      const left   = -panX / zoom - CULL_MARGIN;
-      const top    = -panY / zoom - CULL_MARGIN;
-      const right  = left + window.innerWidth  / zoom + CULL_MARGIN * 2;
-      const bottom = top  + window.innerHeight / zoom + CULL_MARGIN * 2;
+    function revealViewport() {
+      revealRaf = null;
+      const marginX = window.innerWidth  / zoom;   // 1 viewport-width in canvas units
+      const marginY = window.innerHeight / zoom;
+      const left   = -panX / zoom - marginX;
+      const top    = -panY / zoom - marginY;
+      const right  = -panX / zoom + window.innerWidth  / zoom + marginX;
+      const bottom = -panY / zoom + window.innerHeight / zoom + marginY;
 
       for (const p of placedItems) {
-        const visible = p.x < right && p.x + p.w > left && p.y < bottom && p.y + p.h > top;
-        if (visible && !p.imgEl) {
+        if (p.imgEl) continue;
+        if (p.x < right && p.x + p.w > left && p.y < bottom && p.y + p.h > top) {
           const img = document.createElement('img');
           img.draggable = false;
           img.decoding = 'async';
           img.src = `../${p.entry.file}`;
           p.el.insertBefore(img, p.el.firstChild);
           p.imgEl = img;
-        } else if (!visible && p.imgEl) {
-          p.imgEl.remove();
-          p.imgEl = null;
         }
       }
     }
 
-    function scheduleCull() {
-      if (cullRaf != null) return;
-      cullRaf = requestAnimationFrame(cullViewport);
+    function scheduleReveal() {
+      if (revealRaf != null) return;
+      revealRaf = requestAnimationFrame(revealViewport);
     }
 
-    window.addEventListener('resize', scheduleCull);
+    window.addEventListener('resize', scheduleReveal);
 
     // ── Heart SVG ─────────────────────────────────────────────────
     const PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
