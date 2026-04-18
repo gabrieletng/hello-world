@@ -385,9 +385,14 @@
     #lightbox-video::-webkit-media-controls-fullscreen-button {
       display: none !important;
     }
+    #lightbox-media {
+      position: relative;
+      display: inline-block;
+      line-height: 0;
+    }
     #lightbox-fullscreen {
-      position: fixed;
-      bottom: 18px; right: 22px;
+      position: absolute;
+      bottom: 10px; right: 10px;
       width: 32px; height: 32px;
       display: flex; align-items: center; justify-content: center;
       background: rgba(0,0,0,0.55);
@@ -405,19 +410,25 @@
     }
     #lightbox-fullscreen svg { display: block; width: 16px; height: 16px; }
 
-    #lightbox-playpause {
+    #lightbox-controls-bar {
       position: fixed;
       bottom: 22px; left: 50%;
       transform: translateX(-50%);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      z-index: 110;
+      transition: opacity 0.3s;
+    }
+    #lightbox-playpause {
       width: 48px; height: 48px;
-      display: none; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       background: rgba(0,0,0,0.55);
       border: 1px solid rgba(255,255,255,0.3);
       color: rgba(255,255,255,0.85);
       border-radius: 50%;
       cursor: pointer;
-      z-index: 110;
-      transition: opacity 0.3s, background 0.2s, color 0.2s, border-color 0.2s;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
     }
     #lightbox-playpause:hover {
       background: rgba(0,0,0,0.8);
@@ -426,6 +437,27 @@
     }
     #lightbox-playpause svg { display: block; width: 20px; height: 20px; }
 
+    #lightbox-speed {
+      height: 36px;
+      min-width: 48px;
+      padding: 0 14px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.85);
+      border-radius: 18px;
+      font: inherit;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    #lightbox-speed:hover {
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      border-color: rgba(255,255,255,0.5);
+    }
+
     #lightbox-progress {
       position: fixed;
       left: 0; right: 0; bottom: 0;
@@ -433,6 +465,7 @@
       background: rgba(255,255,255,0.12);
       display: none;
       z-index: 109;
+      transition: opacity 0.3s;
     }
     #lightbox-progress .bar {
       height: 100%;
@@ -457,11 +490,12 @@
     #lightbox.carousel #lightbox-meta,
     #lightbox.carousel #lightbox-notes,
     #lightbox.carousel #lightbox-auth { display: none; }
-    #lightbox.carousel #lightbox-playpause { display: flex; }
+    #lightbox.carousel #lightbox-controls-bar { display: flex; }
     #lightbox.carousel #lightbox-progress { display: block; }
 
     #lightbox.carousel.idle #lightbox-fullscreen,
-    #lightbox.carousel.idle #lightbox-playpause,
+    #lightbox.carousel.idle #lightbox-controls-bar,
+    #lightbox.carousel.idle #lightbox-progress,
     #lightbox.carousel.idle #lightbox-close,
     #lightbox.carousel.idle #lightbox-prev,
     #lightbox.carousel.idle #lightbox-next {
@@ -584,8 +618,11 @@
         <span id="auth-user-name"></span>
         <button id="auth-sign-out" class="lightbox-btn">Sign Out</button>
       </div>
-      <img id="lightbox-img" src="" alt="" />
-      <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata" controlslist="nofullscreen"></video>
+      <div id="lightbox-media">
+        <img id="lightbox-img" src="" alt="" />
+        <video id="lightbox-video" style="display:none" autoplay loop muted playsinline controls preload="metadata" controlslist="nofullscreen"></video>
+        <button id="lightbox-fullscreen" title="Full screen" aria-label="Full screen"></button>
+      </div>
       <div id="lightbox-meta">
         <div id="lightbox-title"></div>
         <div id="lightbox-actions">
@@ -608,8 +645,10 @@
         </div>
       </div>
     </div>
-    <button id="lightbox-fullscreen" title="Full screen" aria-label="Full screen"></button>
-    <button id="lightbox-playpause" title="Play slideshow" aria-label="Play slideshow"></button>
+    <div id="lightbox-controls-bar">
+      <button id="lightbox-playpause" title="Play slideshow" aria-label="Play slideshow"></button>
+      <button id="lightbox-speed" title="Image slideshow speed" aria-label="Slideshow speed"></button>
+    </div>
     <div id="lightbox-progress"><div class="bar"></div></div>
   </div>
 
@@ -1255,12 +1294,17 @@
     // ── Carousel (screensaver) mode ──────────────────────────────
     const lightboxFullscreenBtn = document.getElementById('lightbox-fullscreen');
     const lightboxPlayPauseBtn = document.getElementById('lightbox-playpause');
+    const lightboxSpeedBtn = document.getElementById('lightbox-speed');
     const lightboxProgressBar = document.querySelector('#lightbox-progress .bar');
-    const IMAGE_INTERVAL_MS = 5000;
+    const SPEED_OPTIONS_MS = [3000, 5000, 8000, 12000];
+    let speedIdx = 1;
     let carouselPlaying = false;
     let carouselRAF = null;
     let carouselStart = 0;
     let idleTimer = null;
+
+    function renderSpeed() { lightboxSpeedBtn.textContent = (SPEED_OPTIONS_MS[speedIdx] / 1000) + 's'; }
+    renderSpeed();
 
     const ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>';
     const ICON_COLLAPSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg>';
@@ -1313,10 +1357,11 @@
     }
     function tickImage(now) {
       if (!carouselPlaying || (currentEntry && currentEntry.video)) return;
+      const interval = SPEED_OPTIONS_MS[speedIdx];
       const elapsed = now - carouselStart;
-      const pct = Math.min(100, (elapsed / IMAGE_INTERVAL_MS) * 100);
+      const pct = Math.min(100, (elapsed / interval) * 100);
       lightboxProgressBar.style.width = pct + '%';
-      if (elapsed >= IMAGE_INTERVAL_MS) { navigate(1); return; }
+      if (elapsed >= interval) { navigate(1); return; }
       carouselRAF = requestAnimationFrame(tickImage);
     }
     function resetIdle() {
@@ -1345,6 +1390,13 @@
     lightboxPlayPauseBtn.addEventListener('click', e => {
       e.stopPropagation();
       if (carouselPlaying) pauseCarousel(); else playCarousel();
+    });
+    lightboxSpeedBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      speedIdx = (speedIdx + 1) % SPEED_OPTIONS_MS.length;
+      renderSpeed();
+      if (carouselPlaying && currentEntry && !currentEntry.video) advanceStart();
+      resetIdle();
     });
 
     lightbox.addEventListener('mousemove', resetIdle);
