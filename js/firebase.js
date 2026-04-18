@@ -1,7 +1,7 @@
 // Firebase initialization and functions for auth + Firestore
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -30,6 +30,13 @@ export async function signInGoogle() {
     currentUser = result.user;
     return result.user;
   } catch (error) {
+    // If popup is blocked, fall back to redirect-based sign-in
+    if (error.code === 'auth/popup-blocked') {
+      console.log("Popup blocked, using redirect sign-in instead");
+      await signInWithRedirect(auth, googleProvider);
+      // signInWithRedirect will redirect the page, so we don't return here
+      return null;
+    }
     console.error("Sign-in error:", error);
     throw error;
   }
