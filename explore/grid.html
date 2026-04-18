@@ -154,10 +154,10 @@
       object-fit: contain;
     }
     #lightbox-auth {
-      text-align: right;
-      width: 100%;
-      max-width: 600px;
-      margin-bottom: 10px;
+      position: fixed;
+      top: 18px;
+      left: 22px;
+      z-index: 102;
       font-size: 12px;
     }
     #lightbox-auth button {
@@ -197,6 +197,8 @@
       font-size: 28px;
       letter-spacing: 0.08em;
       margin-bottom: 16px;
+      overflow-wrap: anywhere;
+      line-height: 1.15;
     }
     #lightbox-actions {
       display: flex;
