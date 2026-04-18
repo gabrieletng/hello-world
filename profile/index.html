@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile - Collection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #1E1E1E;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+    }
+
+    body.loading { display: flex; align-items: center; justify-content: center; }
+    #loading { text-align: center; }
+    #loading h1 { font-size: 24px; margin-bottom: 16px; }
+
+    #container {
+      width: 100%;
+      min-height: 100vh;
+      padding: 40px 20px;
+      display: none;
+    }
+    #container.ready { display: block; }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      padding-bottom: 20px;
+    }
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 0.08em;
+    }
+    header button {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: system-ui, sans-serif;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    header button:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+    }
+
+    section {
+      margin-bottom: 60px;
+    }
+    section h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.8);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+    }
+
+    .grid-item {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .grid-item:hover {
+      transform: scale(1.05);
+    }
+    .grid-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .empty {
+      text-align: center;
+      color: rgba(255,255,255,0.5);
+      padding: 40px 20px;
+      font-size: 14px;
+    }
+
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.93);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      overflow-y: auto;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox-close {
+      position: fixed;
+      top: 18px; right: 22px;
+      color: #fff;
+      font-size: 26px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    #lightbox-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 95vw;
+      padding: 40px 20px 40px 20px;
+    }
+    #lightbox-img {
+      max-width: 92vw;
+      max-height: 75vh;
+      object-fit: contain;
+    }
+    #lightbox-meta {
+      text-align: center;
+      color: #fff;
+      max-width: 600px;
+    }
+    #lightbox-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    #lightbox-date {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body class="loading">
+  <div id="loading">
+    <h1>Loading profile...</h1>
+  </div>
+
+  <div id="container">
+    <header>
+      <h1>My Collection</h1>
+      <button id="sign-out">Sign Out</button>
+    </header>
+
+    <section>
+      <h2>Liked Images</h2>
+      <div id="liked-grid" class="grid"></div>
+      <div id="liked-empty" class="empty" style="display: none;">No liked images yet</div>
+    </section>
+
+    <section>
+      <h2>Commented Images</h2>
+      <div id="commented-grid" class="grid"></div>
+      <div id="commented-empty" class="empty" style="display: none;">No commented images yet</div>
+    </section>
+  </div>
+
+  <div id="lightbox">
+    <span id="lightbox-close">&#x2715;</span>
+    <div id="lightbox-container">
+      <img id="lightbox-img" src="" alt="" />
+      <div id="lightbox-meta">
+        <div id="lightbox-title"></div>
+        <div id="lightbox-date"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { getCurrentUser, setupAuthStateListener, getUserLikedImages, getUserCommentedImages, signOutUser } from '../js/firebase.js';
+    import { default as ManifestFetch } from '../js/firebase.js';
+
+    fetch('../manifest.json')
+      .then(r => r.json())
+      .then(manifest => {
+        // Create a map of file paths to manifest entries for quick lookup
+        const manifestMap = {};
+        for (const entry of manifest) {
+          manifestMap[entry.file] = entry;
+        }
+        window.manifestMap = manifestMap;
+      });
+
+    let currentUser = null;
+
+    setupAuthStateListener(async (user) => {
+      currentUser = user;
+      if (!user) {
+        // Redirect to grid page if not logged in
+        window.location.href = '/explore/grid.html';
+        return;
+      }
+
+      // Load user's liked and commented images
+      try {
+        const likedImages = await getUserLikedImages();
+        const commentedImages = await getUserCommentedImages();
+
+        displayLikedImages(likedImages);
+        displayCommentedImages(commentedImages);
+
+        // Show container when loaded
+        document.getElementById('container').classList.add('ready');
+        document.body.classList.remove('loading');
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        document.body.classList.remove('loading');
+      }
+    });
+
+    document.getElementById('sign-out').addEventListener('click', async () => {
+      try {
+        await signOutUser();
+      } catch (error) {
+        console.error('Sign out failed:', error);
+      }
+    });
+
+    function displayLikedImages(likedDocs) {
+      const grid = document.getElementById('liked-grid');
+      const empty = document.getElementById('liked-empty');
+
+      if (!likedDocs || likedDocs.length === 0) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+
+      grid.innerHTML = '';
+      for (const doc of likedDocs) {
+        const entry = window.manifestMap[doc.imageFile];
+        if (!entry) continue;
+
+        const item = document.createElement('div');
+        item.className = 'grid-item';
+        const img = document.createElement('img');
+        img.src = `../${entry.file}`;
+        img.alt = entry.title || '';
+        item.appendChild(img);
+
+        item.addEventListener('click', () => openLightbox(entry));
+        grid.appendChild(item);
+      }
+    }
+
+    function displayCommentedImages(imageFiles) {
+      const grid = document.getElementById('commented-grid');
+      const empty = document.getElementById('commented-empty');
+
+      if (!imageFiles || imageFiles.length === 0) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+
+      grid.innerHTML = '';
+      for (const file of imageFiles) {
+        const entry = window.manifestMap[file];
+        if (!entry) continue;
+
+        const item = document.createElement('div');
+        item.className = 'grid-item';
+        const img = document.createElement('img');
+        img.src = `../${entry.file}`;
+        img.alt = entry.title || '';
+        item.appendChild(img);
+
+        item.addEventListener('click', () => openLightbox(entry));
+        grid.appendChild(item);
+      }
+    }
+
+    function openLightbox(entry) {
+      const lightbox = document.getElementById('lightbox');
+      const img = document.getElementById('lightbox-img');
+      const title = document.getElementById('lightbox-title');
+      const date = document.getElementById('lightbox-date');
+
+      img.src = `../${entry.file}`;
+      img.alt = entry.title || '';
+      title.textContent = entry.title || '';
+      title.style.display = entry.title ? 'block' : 'none';
+      date.textContent = entry.date || '';
+      date.style.display = entry.date ? 'block' : 'none';
+
+      lightbox.classList.add('open');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+    }
+
+    document.getElementById('lightbox').addEventListener('click', e => {
+      if (e.target.id === 'lightbox') closeLightbox();
+    });
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
+</body>
+</html>

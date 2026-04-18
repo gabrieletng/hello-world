@@ -17,7 +17,24 @@
       "WebFetch(domain:modem.studio)",
       "WebFetch(domain:oma.eu)",
       "WebFetch(domain:mouthwash.studio)",
-      "WebFetch(domain:herzogdemeuron.com)"
+      "WebFetch(domain:herzogdemeuron.com)",
+      "Bash(git mv *)",
+      "Bash(ffmpeg -version)",
+      "Bash(chmod +x /Users/gabrieletangerini/Claude/hello-world/scripts/optimize.sh)",
+      "Bash(ffmpeg -hide_banner -loglevel error -y -i images/camdenthrasher.png -vf \"scale=w=1600:h=1600:force_original_aspect_ratio=decrease\" -quality 82 /tmp/camdenthrasher-test.webp)",
+      "Bash(sips --formats)",
+      "Bash(ffmpeg -encoders)",
+      "Bash(sips -s format webp -Z 1600 images/camdenthrasher.png --out /tmp/camdenthrasher-test.webp)",
+      "Bash(python3 -c \"from PIL import Image; print\\('Pillow OK'\\)\")",
+      "Bash(python3 -c \"import PIL; print\\('PIL OK'\\)\")",
+      "Bash(python3 scripts/optimize.py /tmp/test_single)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 scripts/optimize.py images/)",
+      "Bash(git rm *)",
+      "Bash(python3 scripts/optimize.py /Users/gabrieletangerini/Claude/ethos/)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer"
     ]
   }
 }

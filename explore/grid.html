@@ -70,6 +70,7 @@
       align-items: center;
       justify-content: center;
       cursor: zoom-out;
+      overflow-y: auto;
     }
     #lightbox.open { display: flex; }
     #lightbox-close {
@@ -87,13 +88,39 @@
       align-items: center;
       gap: 20px;
       max-width: 95vw;
-      max-height: 95vh;
+      padding: 40px 20px 40px 20px;
     }
     #lightbox-img {
       max-width: 92vw;
       max-height: 75vh;
       object-fit: contain;
     }
+    #lightbox-auth {
+      text-align: right;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    #lightbox-auth button {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: system-ui, sans-serif;
+      transition: all 0.2s;
+    }
+    #lightbox-auth button:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+    }
+    #auth-user-name {
+      color: rgba(255,255,255,0.8);
+      margin-right: 12px;
+    }
+
     #lightbox-meta {
       text-align: center;
       color: #fff;
@@ -134,6 +161,98 @@
       color: #ff4444;
     }
 
+    #lightbox-notes {
+      max-width: 600px;
+      width: 100%;
+      margin-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      padding-top: 20px;
+    }
+    #lightbox-notes-header {
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+    #lightbox-notes-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      padding-right: 8px;
+    }
+    .note-item {
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #fff;
+    }
+    .note-author {
+      font-weight: 500;
+      color: rgba(255,255,255,0.9);
+    }
+    .note-time {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      margin-left: 6px;
+    }
+    .note-text {
+      margin-top: 4px;
+      color: rgba(255,255,255,0.8);
+      word-wrap: break-word;
+    }
+    .note-delete {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .note-delete:hover {
+      color: rgba(255,255,255,0.7);
+    }
+
+    #lightbox-notes-input-section {
+      display: flex;
+      gap: 8px;
+    }
+    #lightbox-notes-input {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      outline: none;
+    }
+    #lightbox-notes-input:focus {
+      border-color: rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.12);
+    }
+    #lightbox-notes-input::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+    #lightbox-notes-submit {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: system-ui, sans-serif;
+      transition: all 0.2s;
+    }
+    #lightbox-notes-submit:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+    }
+    #lightbox-notes-message {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+    }
+
     #hint {
       position: fixed;
       bottom: 20px; left: 50%;
@@ -157,6 +276,11 @@
   <div id="lightbox">
     <span id="lightbox-close">&#x2715;</span>
     <div id="lightbox-container">
+      <div id="lightbox-auth">
+        <button id="auth-sign-in" class="lightbox-btn">Sign In</button>
+        <span id="auth-user-name"></span>
+        <button id="auth-sign-out" class="lightbox-btn">Sign Out</button>
+      </div>
       <img id="lightbox-img" src="" alt="" />
       <div id="lightbox-meta">
         <div id="lightbox-title"></div>
@@ -166,12 +290,22 @@
           <button id="lightbox-share" class="lightbox-btn">Share</button>
         </div>
       </div>
+      <div id="lightbox-notes">
+        <div id="lightbox-notes-header">Add Notes</div>
+        <div id="lightbox-notes-list"></div>
+        <div id="lightbox-notes-input-section">
+          <input id="lightbox-notes-input" type="text" placeholder="Add a note..." maxlength="500" />
+          <button id="lightbox-notes-submit" class="lightbox-btn">Post</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <div id="hint">scroll to zoom &nbsp;·&nbsp; drag to pan</div>
 
-  <script>
+  <script type="module">
+    import { signInGoogle, signOutUser, getCurrentUser, setupAuthStateListener, addLike, removeLike, isImageLiked, addNote, getNotes, deleteNote } from '../js/firebase.js';
+
     // ── Layout rule ───────────────────────────────────────────────
     // Each image is assigned a random size, then placed at a random
     // position. If it overlaps any already-placed image (+ GAP margin),
@@ -212,6 +346,45 @@
         ? `<svg viewBox="0 0 24 24" width="13" height="13" fill="#ff4444"><path d="${PATH}"/></svg>`
         : `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linejoin="round"><path d="${PATH}"/></svg>`;
     }
+
+    // ── Auth state management ────────────────────────────────────
+    const authSignInBtn = document.getElementById('auth-sign-in');
+    const authUserName = document.getElementById('auth-user-name');
+    const authSignOutBtn = document.getElementById('auth-sign-out');
+
+    function updateAuthUI(user) {
+      if (user) {
+        authSignInBtn.style.display = 'none';
+        authUserName.textContent = user.displayName || user.email || 'User';
+        authUserName.style.display = 'inline';
+        authSignOutBtn.style.display = 'inline';
+      } else {
+        authSignInBtn.style.display = 'inline';
+        authUserName.style.display = 'none';
+        authSignOutBtn.style.display = 'none';
+      }
+      updateNotesInputSection();
+    }
+
+    setupAuthStateListener(user => updateAuthUI(user));
+
+    authSignInBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      try {
+        await signInGoogle();
+      } catch (error) {
+        console.error('Sign-in failed:', error);
+      }
+    });
+
+    authSignOutBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      try {
+        await signOutUser();
+      } catch (error) {
+        console.error('Sign-out failed:', error);
+      }
+    });
 
     // ── Auto-open image from URL ───────────────────────────────────
     const urlParams = new URLSearchParams(window.location.search);
@@ -293,10 +466,25 @@
           const likeBtn = document.createElement('button');
           likeBtn.className = 'like-btn';
           likeBtn.innerHTML = heartSVG(false);
-          likeBtn.addEventListener('click', e => {
+          likeBtn.addEventListener('click', async e => {
             e.stopPropagation();
-            likeBtn.classList.toggle('liked');
-            likeBtn.innerHTML = heartSVG(likeBtn.classList.contains('liked'));
+            const user = getCurrentUser();
+            if (!user) {
+              authSignInBtn.click();
+              return;
+            }
+            const isLiked = likeBtn.classList.contains('liked');
+            try {
+              if (isLiked) {
+                await removeLike(p.entry.file);
+              } else {
+                await addLike(p.entry.file);
+              }
+              likeBtn.classList.toggle('liked');
+              likeBtn.innerHTML = heartSVG(likeBtn.classList.contains('liked'));
+            } catch (error) {
+              console.error('Like toggle failed:', error);
+            }
           });
           item.appendChild(likeBtn);
 
@@ -445,9 +633,81 @@
     const lightboxDate = document.getElementById('lightbox-date');
     const lightboxLikeBtn = document.getElementById('lightbox-like');
     const lightboxShareBtn = document.getElementById('lightbox-share');
+    const lightboxNotesList = document.getElementById('lightbox-notes-list');
+    const lightboxNotesInput = document.getElementById('lightbox-notes-input');
+    const lightboxNotesSubmit = document.getElementById('lightbox-notes-submit');
     let currentEntry = null;
 
-    function openLightbox(entry) {
+    async function loadNotes() {
+      if (!currentEntry) return;
+      try {
+        const notes = await getNotes(currentEntry.file);
+        lightboxNotesList.innerHTML = '';
+        if (notes.length === 0) {
+          lightboxNotesList.innerHTML = '<div id="lightbox-notes-message">No notes yet. Be the first to add one!</div>';
+          return;
+        }
+        for (const note of notes) {
+          const noteEl = document.createElement('div');
+          noteEl.className = 'note-item';
+          const timeStr = formatTime(note.createdAt);
+          const user = getCurrentUser();
+          const isOwner = user && user.uid === note.userId;
+          let deleteBtn = '';
+          if (isOwner) {
+            deleteBtn = `<span class="note-delete" data-note-id="${note.id}">delete</span>`;
+          }
+          noteEl.innerHTML = `<div><span class="note-author">${note.displayName}</span><span class="note-time">${timeStr}</span>${deleteBtn}</div><div class="note-text">${escapeHtml(note.text)}</div>`;
+          if (isOwner) {
+            noteEl.querySelector('.note-delete').addEventListener('click', async e => {
+              e.stopPropagation();
+              try {
+                await deleteNote(note.id);
+                await loadNotes();
+              } catch (error) {
+                console.error('Delete note failed:', error);
+              }
+            });
+          }
+          lightboxNotesList.appendChild(noteEl);
+        }
+      } catch (error) {
+        console.error('Load notes failed:', error);
+        lightboxNotesList.innerHTML = '<div id="lightbox-notes-message">Error loading notes</div>';
+      }
+    }
+
+    function formatTime(date) {
+      const now = new Date();
+      const diff = now - date;
+      const mins = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function updateNotesInputSection() {
+      const user = getCurrentUser();
+      if (user) {
+        lightboxNotesInput.style.display = 'block';
+        lightboxNotesSubmit.style.display = 'block';
+      } else {
+        lightboxNotesInput.style.display = 'none';
+        lightboxNotesSubmit.style.display = 'none';
+      }
+    }
+
+    async function openLightbox(entry) {
       currentEntry = entry;
       lightboxImg.src = `../${entry.file}`;
       lightboxImg.alt = entry.title || '';
@@ -455,18 +715,51 @@
       lightboxTitle.style.display = entry.title ? 'block' : 'none';
       lightboxDate.textContent = entry.date || '';
       lightboxDate.style.display = entry.date ? 'block' : 'none';
+
+      const user = getCurrentUser();
       lightboxLikeBtn.classList.remove('liked');
+      if (user) {
+        try {
+          const liked = await isImageLiked(entry.file);
+          if (liked) lightboxLikeBtn.classList.add('liked');
+        } catch (error) {
+          console.error('Check like status failed:', error);
+        }
+      }
+
+      lightboxNotesInput.value = '';
+      await loadNotes();
+      updateNotesInputSection();
       lightbox.classList.add('open');
     }
+
     function closeLightbox() {
       lightbox.classList.remove('open');
       lightboxImg.src = '';
       currentEntry = null;
     }
-    lightboxLikeBtn.addEventListener('click', e => {
+
+    lightboxLikeBtn.addEventListener('click', async e => {
       e.stopPropagation();
-      lightboxLikeBtn.classList.toggle('liked');
+      const user = getCurrentUser();
+      if (!user) {
+        authSignInBtn.click();
+        return;
+      }
+      if (!currentEntry) return;
+      const isLiked = lightboxLikeBtn.classList.contains('liked');
+      try {
+        if (isLiked) {
+          await removeLike(currentEntry.file);
+        } else {
+          await addLike(currentEntry.file);
+        }
+        lightboxLikeBtn.classList.toggle('liked');
+      } catch (error) {
+        console.error('Like toggle failed:', error);
+      }
     });
+
     lightboxShareBtn.addEventListener('click', e => {
       e.stopPropagation();
       if (!currentEntry) return;
@@ -478,6 +771,32 @@
         navigator.clipboard.writeText(url).catch(() => {});
       }
     });
+
+    lightboxNotesSubmit.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!currentEntry || !lightboxNotesInput.value.trim()) return;
+      const user = getCurrentUser();
+      if (!user) {
+        authSignInBtn.click();
+        return;
+      }
+      try {
+        await addNote(currentEntry.file, lightboxNotesInput.value);
+        lightboxNotesInput.value = '';
+        await loadNotes();
+      } catch (error) {
+        console.error('Add note failed:', error);
+        alert('Failed to add note: ' + error.message);
+      }
+    });
+
+    lightboxNotesInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        lightboxNotesSubmit.click();
+      }
+    });
+
     lightbox.addEventListener('click', e => { if (e.target === lightbox || e.target.parentElement === lightbox) closeLightbox(); });
     document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
