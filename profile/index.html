@@ -1040,6 +1040,18 @@
     }
 
     lightbox.addEventListener('click', e => {
+      if (lightbox.classList.contains('carousel')) {
+        const interactive = e.target.closest('button, video, #lightbox-close, .lightbox-nav');
+        if (!interactive) {
+          if (lightbox.classList.contains('idle')) {
+            resetIdle();
+          } else {
+            clearTimeout(idleTimer);
+            lightbox.classList.add('idle');
+          }
+        }
+        return;
+      }
       if (e.target === lightbox) closeLightbox();
     });
     document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
@@ -1169,7 +1181,6 @@
     });
 
     lightbox.addEventListener('mousemove', resetIdle);
-    lightbox.addEventListener('touchstart', resetIdle, { passive: true });
 
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement && lightbox.classList.contains('carousel')) {
