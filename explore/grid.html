@@ -167,6 +167,15 @@
     #auth-user-name {
       color: rgba(255,255,255,0.8);
       margin-right: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,0.25);
+      text-underline-offset: 3px;
+      transition: text-decoration-color 0.2s, color 0.2s;
+    }
+    #auth-user-name:hover {
+      color: #fff;
+      text-decoration-color: rgba(255,255,255,0.8);
     }
 
     #lightbox-meta {
@@ -496,6 +505,12 @@
       } catch (error) {
         console.error('Sign-out failed:', error);
       }
+    });
+
+    authUserName.title = 'View your profile';
+    authUserName.addEventListener('click', e => {
+      e.stopPropagation();
+      window.location.href = '../profile/';
     });
 
     // Notes sign-in prompt — sets ?image= URL first so user returns to same image after OAuth
