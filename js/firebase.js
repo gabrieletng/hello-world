@@ -3,6 +3,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { track, identifyUser, resetUser } from "./analytics.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAnKRU_dd9Nwi_iDDo8gPOsfhzSy5Fty6E",
@@ -33,6 +34,12 @@ export async function signInGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     currentUser = result.user;
+    identifyUser(result.user);
+    track("user_signed_in", {
+      userId: result.user.uid,
+      displayName: result.user.displayName || "Anonymous",
+      method: "google",
+    });
     return result.user;
   } catch (error) {
     console.error("Sign-in error:", error.code, error.message);
@@ -44,6 +51,7 @@ export async function signOutUser() {
   try {
     await signOut(auth);
     currentUser = null;
+    resetUser();
   } catch (error) {
     console.error("Sign-out error:", error);
     throw error;
@@ -71,6 +79,11 @@ export async function addLike(imageFile) {
       imageFile: imageFile,
       likedAt: new Date()
     });
+    track("like_added", {
+      userId: currentUser.uid,
+      displayName: currentUser.displayName || "Anonymous",
+      imageFile,
+    });
   } catch (error) {
     console.error("Error adding like:", error);
     throw error;
@@ -91,6 +104,11 @@ export async function removeLike(imageFile) {
     for (const likeDoc of snapshot.docs) {
       await deleteDoc(likeDoc.ref);
     }
+    track("like_removed", {
+      userId: currentUser.uid,
+      displayName: currentUser.displayName || "Anonymous",
+      imageFile,
+    });
   } catch (error) {
     console.error("Error removing like:", error);
     throw error;
@@ -127,6 +145,12 @@ export async function addNote(imageFile, text) {
       text: text.trim(),
       createdAt: new Date(),
       displayName: currentUser.displayName || "Anonymous"
+    });
+    track("note_created", {
+      userId: currentUser.uid,
+      displayName: currentUser.displayName || "Anonymous",
+      imageFile,
+      text: text.trim(),
     });
     return docRef.id;
   } catch (error) {
