@@ -365,6 +365,20 @@
       color: #fff;
     }
 
+    @keyframes hintGlow {
+      0%, 100% {
+        box-shadow: 0 6px 24px rgba(0,0,0,0.5),
+                    0 0 0 0 rgba(255,255,255,0.0),
+                    0 0 24px 2px rgba(255,255,255,0.12);
+        border-color: rgba(255,255,255,0.25);
+      }
+      50% {
+        box-shadow: 0 6px 28px rgba(0,0,0,0.55),
+                    0 0 0 6px rgba(255,255,255,0.04),
+                    0 0 48px 8px rgba(255,255,255,0.35);
+        border-color: rgba(255,255,255,0.55);
+      }
+    }
     #hint {
       position: fixed;
       bottom: 32px; left: 50%;
@@ -379,10 +393,10 @@
       border-radius: 999px;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
       white-space: nowrap;
       pointer-events: none;
       transition: opacity 1s;
+      animation: hintGlow 2.2s ease-in-out infinite;
     }
     #hint.hidden { opacity: 0; }
   </style>
