@@ -5,13 +5,13 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChang
 import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBBJsmUaLDwiYKCyV2JsLgvEzVK2YhM-N4",
-  authDomain: "hello-world-3e616.firebaseapp.com",
-  projectId: "hello-world-3e616",
-  storageBucket: "hello-world-3e616.firebasestorage.app",
-  messagingSenderId: "323915010694",
-  appId: "1:323915010694:web:cdadfe09421e337448f707",
-  measurementId: "G-M1HXVYYWD"
+  apiKey: "AIzaSyAnKRU_dd9Nwi_iDDo8gPOsfhzSy5Fty6E",
+  authDomain: "loveanddeath-app.firebaseapp.com",
+  projectId: "loveanddeath-app",
+  storageBucket: "loveanddeath-app.firebasestorage.app",
+  messagingSenderId: "944257976413",
+  appId: "1:944257976413:web:fa3c7e5ba5e2f6899ea5b4",
+  measurementId: "G-HBY4VKHE5Y"
 };
 
 // Initialize Firebase
