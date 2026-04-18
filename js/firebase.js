@@ -1,7 +1,7 @@
 // Firebase initialization and functions for auth + Firestore
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -20,24 +20,50 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Configure Google provider to always show account selection
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
 // State
 let currentUser = null;
+
+// Handle redirect result from Google Sign-In
+getRedirectResult(auth)
+  .then((result) => {
+    if (result) {
+      currentUser = result.user;
+      console.log("Redirect sign-in successful:", result.user.email);
+    }
+  })
+  .catch((error) => {
+    if (error.code !== 'auth/popup-closed-by-user') {
+      console.error("Redirect sign-in error:", error);
+    }
+  });
 
 // Authentication functions
 export async function signInGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     currentUser = result.user;
+    console.log("Popup sign-in successful");
     return result.user;
   } catch (error) {
     // If popup is blocked, fall back to redirect-based sign-in
     if (error.code === 'auth/popup-blocked') {
-      console.log("Popup blocked, using redirect sign-in instead");
-      await signInWithRedirect(auth, googleProvider);
-      // signInWithRedirect will redirect the page, so we don't return here
-      return null;
+      console.log("Popup blocked, attempting redirect sign-in...");
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        // signInWithRedirect will redirect the page, so we don't return here
+        console.log("Redirect to Google Sign-In initiated");
+        return null;
+      } catch (redirectError) {
+        console.error("Redirect sign-in error:", redirectError);
+        throw redirectError;
+      }
     }
-    console.error("Sign-in error:", error);
+    console.error("Sign-in error:", error.code, error.message);
     throw error;
   }
 }
