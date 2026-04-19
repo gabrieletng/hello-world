@@ -705,9 +705,12 @@
     const MIN_H    = 70;
     const MAX_H    = 260;
     const MAX_W    = 380;
-    const GAP      = 10;       // minimum px between any two images
-    const DENSITY  = 0.46;     // ratio of image area to canvas area (RSA jamming ~50%, stay well under)
-    const MAX_TRIES = 1200;    // rejection attempts per image before giving up
+    const GAP      = 6;        // minimum px between any two images
+    const DENSITY  = 0.60;     // ratio of image area to canvas area — largest-first
+                               // sort + varied rectangles let us push past the
+                               // ~55% RSA ceiling for uniform squares
+    const MAX_TRIES = 2500;    // rejection attempts per image before giving up
+                               // (higher density = more rejections, so raise this)
 
     // ── Pan / zoom ────────────────────────────────────────────────
     let zoom = 0.45, panX = 0, panY = 0;
