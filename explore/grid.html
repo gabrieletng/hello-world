@@ -232,6 +232,13 @@
       padding: 10px 14px;
     }
     .lightbox-like-btn svg { display: block; }
+    .lightbox-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+    }
+    .lightbox-icon-btn svg { display: block; }
 
     #lightbox-notes {
       max-width: 600px;
@@ -631,6 +638,7 @@
         <div id="lightbox-actions">
           <button id="lightbox-like" class="lightbox-btn lightbox-like-btn"></button>
           <button id="lightbox-share" class="lightbox-btn">Share</button>
+          <button id="lightbox-lens" class="lightbox-btn lightbox-icon-btn" title="Search with Google" aria-label="Search with Google"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><line x1="15.5" y1="15.5" x2="20.5" y2="20.5"></line></svg></button>
         </div>
       </div>
       <div id="lightbox-notes">
@@ -1217,6 +1225,14 @@
       } catch (error) {
         console.error('Like toggle failed:', error);
       }
+    });
+
+    const lightboxLensBtn = document.getElementById('lightbox-lens');
+    lightboxLensBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!currentEntry) return;
+      const imageUrl = new URL(`../${currentEntry.file}`, window.location.href).href;
+      window.open(`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(imageUrl)}`, '_blank', 'noopener');
     });
 
     lightboxShareBtn.addEventListener('click', e => {
