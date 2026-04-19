@@ -45,7 +45,11 @@
       "Bash(curl -s \"https://gabrieletng.github.io/hello-world/js/analytics.js\")",
       "Bash(curl -sI \"https://gabrieletng.github.io/hello-world/explore/grid.html\")",
       "Bash(curl -sS -X POST -H \"Content-Type: application/json\" -d '{\"content\":\"test: image_shared · overview_image_267728593_290059 — if you see this, the webhook works\"}' \"https://discord.com/api/webhooks/1495175220636680373/5MaSvE6VsXFtbrRItJWuEDWYT6iLsV8cZvXg6nqpXbGaxb7P6_lluVUbDNEdIiOPSBvH\" -w \"\\\\nHTTP:%{http_code}\\\\n\")",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(git rebase *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(gh pr create --title 'Docs: refresh PROJECT.md to match shipped state' --body ' *)"
     ]
   }
 }

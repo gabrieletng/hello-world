@@ -17,7 +17,8 @@ A photography collection website. A single homepage acts as a doorway into the f
 ├── profile/
 │   └── index.html          ← liked + noted images for the signed-in user
 ├── images/                 ← full image collection (WebP/MP4/GIF)
-│   └── og-homepage.jpg     ← link-preview image for the homepage
+│   ├── og-homepage.jpg     ← link-preview image for the homepage
+│   └── og-collection.jpg   ← link-preview image for the collection (grid)
 ├── manifest.json           ← source of truth: { file, title, date, width, height, type } per item
 ├── .ethos-manifest.json    ← tracks which images/ files were created by sync-ethos
 ├── js/
@@ -62,7 +63,8 @@ A photography collection website. A single homepage acts as a doorway into the f
 - Click opens the lightbox
 
 ### Lightbox (grid + profile)
-- Full-screen media with title, date, like button, share button, notes panel, prev/next arrows
+- Full-screen media with title, date, like button, share button, Google Lens button, notes panel, prev/next arrows
+- Google Lens button opens the current image in `lens.google.com/uploadbyurl?url=…` in a new tab — reverse-image search for context on any piece
 - `align-items: safe center` keeps tall images scrollable
 - Auto-opens when the URL carries `?image=<file>`
 - Fullscreen button at bottom-right enters **carousel mode**:
@@ -105,6 +107,8 @@ Wired through `js/analytics.js`, which is the single call site for `track(event,
 - **PostHog** (EU cloud) — captures every event. `person_profiles: 'identified_only'`, `respect_dnt: true`. Users are `identify`'d on sign-in and `reset` on sign-out.
 - **Microsoft Clarity** — session replay + heatmaps, loaded on every HTML page.
 - **Discord webhook** — real-time owner pings on `user_signed_in`, `note_created`, `like_added`, `image_shared`. Uses `fetch(..., { keepalive: true })` to survive page unload after a share or sign-in.
+
+Events captured but not webhooked: `lens_search` (Google Lens button click), plus the standard PostHog pageview / session events.
 
 All three snippets sit in the `<head>` of every HTML page. When regenerating pages, re-run `scripts/install_posthog.py` and `scripts/install_clarity.py` to inject them.
 
