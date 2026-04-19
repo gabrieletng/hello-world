@@ -583,12 +583,15 @@
       box-shadow: 0 10px 24px rgba(0,0,0,0.25);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.6s;
+      transition: opacity 0.6s, transform 1.4s cubic-bezier(0.77, 0, 0.175, 1);
     }
     #nav-strip.visible {
       opacity: 1;
       pointer-events: auto;
     }
+    /* Ride the overlay down — nav-strip's top edge tracks the overlay's
+       bottom edge, mirroring how the home's footer rides the homepage up. */
+    body.leaving-home #nav-strip { transform: translateY(100vh); }
     #nav-colophon {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 12px;
