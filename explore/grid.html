@@ -962,14 +962,11 @@
     // ── Pan on drag (with kinetic inertia) ───────────────────────
     const COAST_HALF = 0.38;  // seconds for velocity to halve after release
     const COAST_MIN  = 1.5;   // px/s below which coast stops
-    const IDLE_MS    = 40;    // mousemove silence treated as end-of-drag (trackpad grace window)
-    const FLICK_VEL  = 200;   // px/s — only flicks trigger early coast
 
     let dragging = false, didDrag = false;
     let dragStartX, dragStartY, panStartX, panStartY;
     let velX = 0, velY = 0, prevX, prevY, prevT;
     let coastRaf = null;
-    let idleTimer = null, earlyCoasted = false;
 
     function stopCoast() { if (coastRaf) { cancelAnimationFrame(coastRaf); coastRaf = null; } }
 
@@ -989,22 +986,8 @@
       coastRaf = requestAnimationFrame(coast);
     }
 
-    function scheduleIdleCheck() {
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        idleTimer = null;
-        if (!dragging || earlyCoasted) return;
-        if (Math.hypot(velX, velY) > FLICK_VEL) {
-          earlyCoasted = true;
-          launchCoast();
-        }
-      }, IDLE_MS);
-    }
-
     stage.addEventListener('mousedown', e => {
       stopCoast();
-      clearTimeout(idleTimer); idleTimer = null;
-      earlyCoasted = false;
       dragging = true; didDrag = false;
       dragStartX = e.clientX; dragStartY = e.clientY;
       panStartX = panX; panStartY = panY;
@@ -1014,14 +997,6 @@
     });
     window.addEventListener('mousemove', e => {
       if (!dragging) return;
-      if (earlyCoasted) {
-        stopCoast();
-        earlyCoasted = false;
-        dragStartX = e.clientX; dragStartY = e.clientY;
-        panStartX = panX; panStartY = panY;
-        prevX = e.clientX; prevY = e.clientY; prevT = performance.now();
-        velX = 0; velY = 0;
-      }
       const dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
       if (Math.abs(dx) + Math.abs(dy) > 4) didDrag = true;
       panX = panStartX + dx; panY = panStartY + dy;
@@ -1031,14 +1006,11 @@
         velX = (e.clientX - prevX) / dt; velY = (e.clientY - prevY) / dt;
         prevX = e.clientX; prevY = e.clientY; prevT = now;
       }
-      scheduleIdleCheck();
     });
     window.addEventListener('mouseup', () => {
       if (!dragging) return;
       dragging = false;
-      clearTimeout(idleTimer); idleTimer = null;
       document.body.classList.remove('dragging');
-      if (earlyCoasted) { earlyCoasted = false; return; }
       if (Math.abs(velX) > COAST_MIN || Math.abs(velY) > COAST_MIN) launchCoast();
     });
 
