@@ -15,7 +15,7 @@
 const OWNER_WEBHOOK_URL = "https://discord.com/api/webhooks/1495175220636680373/5MaSvE6VsXFtbrRItJWuEDWYT6iLsV8cZvXg6nqpXbGaxb7P6_lluVUbDNEdIiOPSBvH";
 
 // Which events trigger the owner webhook. PostHog receives everything regardless.
-const WEBHOOK_EVENTS = new Set(["user_signed_in", "note_created", "like_added", "image_shared"]);
+const WEBHOOK_EVENTS = new Set(["user_signed_in", "note_created", "like_added", "image_shared", "lens_search"]);
 // -------------------------------------------------------------------------
 
 export function identifyUser(user) {
@@ -58,6 +58,7 @@ function formatPing(event, props) {
     like_added: "liked",
     like_removed: "unliked",
     image_shared: "shared",
+    lens_search: "Google-Lens'd",
   };
   return `${who} ${labels[event] || event}${img}${extra}`;
 }

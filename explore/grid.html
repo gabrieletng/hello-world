@@ -1232,6 +1232,12 @@
       e.stopPropagation();
       if (!currentEntry) return;
       const imageUrl = new URL(`../${currentEntry.file}`, window.location.href).href;
+      const user = getCurrentUser();
+      track('lens_search', {
+        userId: user?.uid || null,
+        displayName: user?.displayName || 'anonymous',
+        imageFile: currentEntry.file,
+      });
       window.open(`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(imageUrl)}`, '_blank', 'noopener');
     });
 
