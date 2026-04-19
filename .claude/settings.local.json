@@ -35,21 +35,17 @@
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "mcp__Claude_in_Chrome__navigate",
       "mcp__Claude_in_Chrome__computer",
-      "Bash(chmod +x /Users/REDACTED_USER/Claude/hello-world/scripts/update-manifest.py)",
-      "Bash(python3 scripts/update-manifest.py)",
-      "Bash(git config *)",
-      "Bash(open -a Safari http://localhost:3000/explore/grid.html)",
-      "Bash(gh workflow *)",
-      "mcp__github__list_pull_requests",
-      "mcp__Claude_in_Chrome__read_page",
-      "Bash(open -a \"Google Chrome\" \"https://gabrieletng.github.io/hello-world/explore/grid.html\")",
-      "Bash(open -a \"Google Chrome\" \"https://console.cloud.google.com/apis/credentials?project=hello-world-3e616\")",
       "Bash(python3 scripts/install_clarity.py)",
       "Bash(python3 scripts/install_posthog.py)",
       "Bash(xargs sed *)",
-      "Bash(git fetch *)",
-      "Bash(git rebase *)",
-      "Bash(git stash *)"
+      "Bash(curl -sS -X POST -H \"Content-Type: application/json\" -d '{\"content\":\"🎉 webhook wired up — you should see this in Discord\"}' \"https://discord.com/api/webhooks/REDACTED\" -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(curl -s \"https://gabrieletng.github.io/hello-world/explore/grid.html\")",
+      "Bash(curl -s \"https://gabrieletng.github.io/hello-world/js/analytics.js\")",
+      "Bash(curl -sI \"https://gabrieletng.github.io/hello-world/explore/grid.html\")",
+      "Bash(curl -sS -X POST -H \"Content-Type: application/json\" -d '{\"content\":\"test: image_shared · overview_image_267728593_290059 — if you see this, the webhook works\"}' \"https://discord.com/api/webhooks/REDACTED\" -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(git fetch *)"
     ]
   }
 }
