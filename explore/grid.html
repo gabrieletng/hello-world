@@ -1055,10 +1055,18 @@
       dismissHint();
     }, { passive: false });
     stage.addEventListener('touchend', e => {
-      lastPinch = null;
       if (e.touches.length === 0) {
+        lastPinch = null;
         velX = tVelX; velY = tVelY;
         if (Math.abs(velX) > COAST_MIN || Math.abs(velY) > COAST_MIN) launchCoast();
+      } else {
+        lastPinch = e.touches.length === 2
+          ? Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
+          : null;
+        lastTX = tPrevX = e.touches[0].clientX;
+        lastTY = tPrevY = e.touches[0].clientY;
+        tPrevT = performance.now();
+        tVelX = 0; tVelY = 0;
       }
     });
 
