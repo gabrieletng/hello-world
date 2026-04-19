@@ -8,6 +8,8 @@ function initMarquee({ images }) {
   const TOP_DURATION = 95;
   const BOT_DURATION = 115;
   const SPIN_HALF    = 1.2;
+  const IDLE_MS      = 40;   // mousemove silence treated as end-of-drag (trackpad grace window)
+  const FLICK_VEL    = 200;  // px/s — only flicks trigger early release
 
   function shuffled(arr) {
     const a = arr.slice();
@@ -58,8 +60,12 @@ function initMarquee({ images }) {
   let dragVel   = 0;
   let grabDir   = 1;
   let spin      = 0;
+  let dragIdleTimer = null;
+  let earlyReleased = false;
 
   function pDown(x, clientY) {
+    clearTimeout(dragIdleTimer); dragIdleTimer = null;
+    earlyReleased = false;
     dragging  = true;
     prevDragX = x;
     prevVelX  = x;
@@ -70,7 +76,32 @@ function initMarquee({ images }) {
     document.body.classList.add('dragging');
   }
 
+  function scheduleIdleCheck() {
+    clearTimeout(dragIdleTimer);
+    dragIdleTimer = setTimeout(() => {
+      dragIdleTimer = null;
+      if (!dragging || earlyReleased) return;
+      if (Math.abs(dragVel) > FLICK_VEL) {
+        earlyReleased = true;
+        dragging = false;
+        spin = dragVel * grabDir;
+        document.body.classList.remove('dragging');
+      }
+    }, IDLE_MS);
+  }
+
   function pMove(x) {
+    if (earlyReleased) {
+      earlyReleased = false;
+      dragging  = true;
+      prevDragX = x;
+      prevVelX  = x;
+      prevVelT  = performance.now();
+      dragVel   = 0;
+      spin      = 0;
+      document.body.classList.add('dragging');
+      return;
+    }
     if (!dragging) return;
     const now   = performance.now();
     const delta = x - prevDragX;
@@ -87,9 +118,12 @@ function initMarquee({ images }) {
     botDisp -= delta * grabDir;
     wrapTop(); wrapBot();
     applyTransform();
+    scheduleIdleCheck();
   }
 
   function pUp() {
+    clearTimeout(dragIdleTimer); dragIdleTimer = null;
+    if (earlyReleased) { earlyReleased = false; return; }
     if (!dragging) return;
     dragging = false;
     spin = dragVel * grabDir;
