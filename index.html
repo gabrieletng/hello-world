@@ -199,13 +199,52 @@
     // The down arrow is literal: the page slides up, the dark collection
     // colour beneath is revealed, then we navigate.
     const portalLink = document.getElementById('portal-link');
-    portalLink.addEventListener('click', e => {
-      e.preventDefault();
+    function leaveHome() {
+      if (document.body.classList.contains('leaving')) return;
       document.body.classList.add('leaving');
       setTimeout(() => {
         window.location.href = portalLink.href;
       }, 1380);
+    }
+    portalLink.addEventListener('click', e => {
+      e.preventDefault();
+      leaveHome();
     });
+
+    // Swipe up anywhere on the home to open the collection. Angle-gated so a
+    // predominantly-horizontal gesture still drives the carousel — the
+    // carousel itself drops the drag silently once the gesture is vertical.
+    (function() {
+      const UP_PX   = 80;
+      const FLICK_V = 500;
+      const LOCK_D  = 10;
+      let active = false, fired = false, mode = null;
+      let sx = 0, sy = 0, py = 0, pt = 0, vy = 0;
+
+      function start(x, y) {
+        active = true; fired = false; mode = null;
+        sx = x; sy = py = y; pt = performance.now(); vy = 0;
+      }
+      function move(x, y) {
+        if (!active || fired) return;
+        const dx = x - sx, dy = y - sy;
+        if (mode === null && Math.hypot(dx, dy) > LOCK_D) {
+          mode = Math.abs(dy) > Math.abs(dx) ? 'v' : 'h';
+        }
+        const now = performance.now(), dt = (now - pt) / 1000;
+        if (dt > 0.004) { vy = (y - py) / dt; py = y; pt = now; }
+        if (mode === 'v' && (dy < -UP_PX || vy < -FLICK_V)) {
+          fired = true;
+          leaveHome();
+        }
+      }
+      function end() { active = false; mode = null; }
+
+      document.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+      document.addEventListener('touchmove',  e => move(e.touches[0].clientX, e.touches[0].clientY),  { passive: true });
+      document.addEventListener('touchend',   end);
+      document.addEventListener('touchcancel', end);
+    })();
   </script>
 </body>
 </html>
