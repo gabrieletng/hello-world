@@ -1,4 +1,4 @@
-# A Story of Love and Death — Project Document
+# Working References — Project Document
 
 Live: https://gabrieletng.github.io/hello-world/
 
@@ -46,7 +46,7 @@ A photography collection website. A single homepage acts as a doorway into the f
 
 ### Homepage (`index.html`)
 - Dual scrolling marquee (top + bottom bands), opposite directions, draggable with inertia
-- Centre text: "THIS IS A STORY OF / LOVE AND DEATH" (Bebas Neue)
+- Centre text: "WORKING / REFERENCES" (Bebas Neue)
 - Footer strip: colophon + "THE COLLECTION ↓" portal
 - Clicking the portal slides the homepage up off-screen, revealing the dark collection background beneath, then navigates to the grid
 - OG/Twitter image: absolute URL to `images/og-homepage.jpg`

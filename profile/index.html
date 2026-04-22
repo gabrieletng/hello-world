@@ -18,7 +18,7 @@
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile · A Story of Love and Death</title>
+  <title>Profile · Working References</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
@@ -1250,7 +1250,7 @@
       if (!currentEntry) return;
       const stem = currentEntry.file.split('/').pop().replace(/\.webp$/, '');
       const url = new URL(`../explore/share/${stem}.html`, window.location.href).href;
-      const text = `${currentEntry.title || 'Image'} – A Story of Love and Death`;
+      const text = `${currentEntry.title || 'Image'} – Working References`;
       const user = getCurrentUser();
       track('image_shared', {
         userId: user?.uid || null,
