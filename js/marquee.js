@@ -62,6 +62,7 @@ function initMarquee({ images }) {
   let spin      = 0;
   let dragIdleTimer = null;
   let earlyReleased = false;
+  let startX = 0, startY = 0, locked = null;
 
   function pDown(x, clientY) {
     clearTimeout(dragIdleTimer); dragIdleTimer = null;
@@ -73,6 +74,9 @@ function initMarquee({ images }) {
     dragVel   = 0;
     spin      = 0;
     grabDir   = clientY < window.innerHeight / 2 ? 1 : -1;
+    startX    = x;
+    startY    = clientY;
+    locked    = null;
     document.body.classList.add('dragging');
   }
 
@@ -90,7 +94,7 @@ function initMarquee({ images }) {
     }, IDLE_MS);
   }
 
-  function pMove(x) {
+  function pMove(x, y) {
     if (earlyReleased) {
       earlyReleased = false;
       dragging  = true;
@@ -99,10 +103,33 @@ function initMarquee({ images }) {
       prevVelT  = performance.now();
       dragVel   = 0;
       spin      = 0;
+      startX    = x;
+      startY    = y;
+      locked    = null;
       document.body.classList.add('dragging');
       return;
     }
     if (!dragging) return;
+
+    // Direction lock: once the gesture clears a small threshold, classify it
+    // as horizontal (carousel) or vertical (page-flip). Vertical gestures
+    // abandon the drag silently so a swipe-up to navigate doesn't also
+    // drive the carousel sideways.
+    if (locked === null) {
+      const dx = x - startX, dy = y - startY;
+      if (Math.hypot(dx, dy) > 10) {
+        if (Math.abs(dy) > Math.abs(dx)) {
+          dragging = false;
+          dragVel  = 0;
+          clearTimeout(dragIdleTimer); dragIdleTimer = null;
+          document.body.classList.remove('dragging');
+          locked = 'v';
+          return;
+        }
+        locked = 'h';
+      }
+    }
+
     const now   = performance.now();
     const delta = x - prevDragX;
     prevDragX   = x;
@@ -131,12 +158,12 @@ function initMarquee({ images }) {
   }
 
   document.addEventListener('mousedown',  e => { e.preventDefault(); pDown(e.clientX, e.clientY); });
-  document.addEventListener('mousemove',  e => pMove(e.clientX));
+  document.addEventListener('mousemove',  e => pMove(e.clientX, e.clientY));
   document.addEventListener('mouseup',    ()  => pUp());
   document.addEventListener('mouseleave', ()  => pUp());
 
   document.addEventListener('touchstart', e => pDown(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-  document.addEventListener('touchmove',  e => pMove(e.touches[0].clientX),                        { passive: true });
+  document.addEventListener('touchmove',  e => pMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
   document.addEventListener('touchend',   ()  => pUp());
 
   let lastT = 0;

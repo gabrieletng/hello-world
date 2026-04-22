@@ -1558,14 +1558,55 @@
     navStrip.classList.add('visible');
     navTimer = setTimeout(() => navStrip.classList.remove('visible'), 10000);
 
-    navHome.addEventListener('click', e => {
-      e.stopPropagation();
+    function leaveToHome() {
+      if (document.body.classList.contains('leaving-home')) return;
       document.documentElement.style.setProperty('--viewport-h', window.innerHeight + 'px');
       document.body.classList.add('leaving-home');
       setTimeout(() => {
         window.location.href = '../';
       }, 1380);
+    }
+
+    navHome.addEventListener('click', e => {
+      e.stopPropagation();
+      leaveToHome();
     });
+
+    // Swipe down in the top edge band (covering the nav-strip) to go home.
+    // Narrow zone so canvas panning is untouched elsewhere.
+    (function() {
+      const DOWN_PX = 80;
+      const FLICK_V = 500;
+      const LOCK_D  = 10;
+      const ZONE_PX = 80;
+      let active = false, fired = false, mode = null;
+      let sx = 0, sy = 0, py = 0, pt = 0, vy = 0;
+
+      function start(x, y) {
+        if (y > ZONE_PX) return;
+        active = true; fired = false; mode = null;
+        sx = x; sy = py = y; pt = performance.now(); vy = 0;
+      }
+      function move(x, y) {
+        if (!active || fired) return;
+        const dx = x - sx, dy = y - sy;
+        if (mode === null && Math.hypot(dx, dy) > LOCK_D) {
+          mode = Math.abs(dy) > Math.abs(dx) ? 'v' : 'h';
+        }
+        const now = performance.now(), dt = (now - pt) / 1000;
+        if (dt > 0.004) { vy = (y - py) / dt; py = y; pt = now; }
+        if (mode === 'v' && (dy > DOWN_PX || vy > FLICK_V)) {
+          fired = true;
+          leaveToHome();
+        }
+      }
+      function end() { active = false; mode = null; }
+
+      window.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+      window.addEventListener('touchmove',  e => move(e.touches[0].clientX, e.touches[0].clientY),  { passive: true });
+      window.addEventListener('touchend',   end);
+      window.addEventListener('touchcancel', end);
+    })();
 
     navProfile.addEventListener('click', async e => {
       e.stopPropagation();
