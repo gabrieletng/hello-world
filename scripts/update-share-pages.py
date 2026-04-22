@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 
 BASE_URL = 'https://gabrieletng.github.io/hello-world'
-SUBTITLE = 'A Story of Love and Death'
+SUBTITLE = 'Working References'
 
 TEMPLATE = """<!DOCTYPE html>
 <html lang="en">

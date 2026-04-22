@@ -23,16 +23,16 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://gabrieletng.github.io/hello-world/explore/grid.html" />
   <meta property="og:title" content="The Collection" />
-  <meta property="og:description" content="A Story of Love and Death — a personal archive." />
+  <meta property="og:description" content="Working References." />
   <meta property="og:image" content="https://gabrieletng.github.io/hello-world/images/og-collection.jpg" />
   <meta property="og:image:secure_url" content="https://gabrieletng.github.io/hello-world/images/og-collection.jpg" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="707" />
-  <meta property="og:image:alt" content="The Collection — a personal archive" />
+  <meta property="og:image:alt" content="The Collection" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="The Collection" />
-  <meta name="twitter:description" content="A Story of Love and Death — a personal archive." />
+  <meta name="twitter:description" content="Working References." />
   <meta name="twitter:image" content="https://gabrieletng.github.io/hello-world/images/og-collection.jpg" />
 
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
@@ -1326,7 +1326,7 @@
       if (!currentEntry) return;
       const stem = currentEntry.file.split('/').pop().replace(/\.webp$/, '');
       const url = new URL(`share/${stem}.html`, window.location.href).href;
-      const text = `${currentEntry.title || 'Image'} – A Story of Love and Death`;
+      const text = `${currentEntry.title || 'Image'} – Working References`;
       const user = getCurrentUser();
       track('image_shared', {
         userId: user?.uid || null,
