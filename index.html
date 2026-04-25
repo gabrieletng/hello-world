@@ -245,6 +245,31 @@
       document.addEventListener('touchend',   end);
       document.addEventListener('touchcancel', end);
     })();
+
+    // Desktop scroll-down opens the collection. Same metaphor as the touch
+    // swipe — the arrow points at the destination, you scroll toward it.
+    // Accumulates deltaY so a stray micro-tick doesn't trigger; resets after
+    // a brief idle so two unrelated scrolls don't add up.
+    (function() {
+      const THRESHOLD = 60;
+      let accum = 0;
+      let idle = null;
+      document.addEventListener('wheel', e => {
+        if (document.body.classList.contains('leaving')) return;
+        if (e.deltaY <= 0) return;
+        // Normalize across deltaMode (pixel / line / page).
+        const dy = e.deltaMode === 1 ? e.deltaY * 16
+                 : e.deltaMode === 2 ? e.deltaY * window.innerHeight
+                 : e.deltaY;
+        accum += dy;
+        clearTimeout(idle);
+        idle = setTimeout(() => { accum = 0; }, 250);
+        if (accum > THRESHOLD) {
+          accum = 0;
+          leaveHome();
+        }
+      }, { passive: true });
+    })();
   </script>
 </body>
 </html>
