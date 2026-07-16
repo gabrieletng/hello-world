@@ -12,7 +12,7 @@
 //   - ntfy.sh: "https://ntfy.sh/<your-secret-topic>"  (POST with plain-text body)
 //   - Discord: "https://discord.com/api/webhooks/<id>/<token>"  (POST JSON { content })
 // Leave empty to disable the webhook channel (PostHog still runs).
-const OWNER_WEBHOOK_URL = "https://discord.com/api/webhooks/REDACTED";
+const OWNER_WEBHOOK_URL = "";
 
 // Which events trigger the owner webhook. PostHog receives everything regardless.
 const WEBHOOK_EVENTS = new Set(["user_signed_in", "note_created", "like_added", "image_shared", "lens_search"]);
