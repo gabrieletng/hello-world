@@ -716,7 +716,7 @@
   </div>
 
   <script type="module">
-    import { signInGoogle, signOutUser, getCurrentUser, setupAuthStateListener, addLike, removeLike, isImageLiked, addNote, getNotes, deleteNote } from '../js/firebase.js';
+    import { signInGoogle, signOutUser, getCurrentUser, setupAuthStateListener, addLike, removeLike, isImageLiked, getUserLikedImages, addNote, getNotes, deleteNote } from '../js/firebase.js';
     import { track } from '../js/analytics.js';
 
     // ── Layout rule ───────────────────────────────────────────────
@@ -791,7 +791,33 @@
       navProfile.textContent = user ? 'PROFILE' : 'SIGN IN';
     }
 
-    setupAuthStateListener(user => { updateAuthUI(user); updateNavAuth(user); });
+    // Shared liked-state: the set of image files the signed-in user has liked,
+    // loaded once on auth so the grid's hover hearts reflect true state without
+    // a per-image round trip. Kept in sync as likes toggle from grid/lightbox.
+    let likedFiles = new Set();
+    const likeButtons = [];  // every grid heart button, for bulk refresh
+
+    function refreshHearts() {
+      for (const btn of likeButtons) {
+        const liked = likedFiles.has(btn.dataset.file);
+        btn.classList.toggle('liked', liked);
+        btn.innerHTML = heartSVG(liked);
+      }
+    }
+
+    async function loadLikedFiles(user) {
+      if (!user) { likedFiles = new Set(); refreshHearts(); return; }
+      try {
+        const likes = await getUserLikedImages();
+        likedFiles = new Set(likes.map(l => l.imageFile));
+      } catch (error) {
+        console.error('Failed to load liked images:', error);
+        likedFiles = new Set();
+      }
+      refreshHearts();
+    }
+
+    setupAuthStateListener(user => { updateAuthUI(user); updateNavAuth(user); loadLikedFiles(user); });
 
     authSignInBtn.addEventListener('click', async e => {
       e.stopPropagation();
@@ -916,7 +942,11 @@
 
           const likeBtn = document.createElement('button');
           likeBtn.className = 'like-btn';
-          likeBtn.innerHTML = heartSVG(false);
+          likeBtn.dataset.file = p.entry.file;
+          const initiallyLiked = likedFiles.has(p.entry.file);
+          if (initiallyLiked) likeBtn.classList.add('liked');
+          likeBtn.innerHTML = heartSVG(initiallyLiked);
+          likeButtons.push(likeBtn);
           likeBtn.addEventListener('click', async e => {
             e.stopPropagation();
             const user = getCurrentUser();
@@ -928,8 +958,10 @@
             try {
               if (isLiked) {
                 await removeLike(p.entry.file);
+                likedFiles.delete(p.entry.file);
               } else {
                 await addLike(p.entry.file);
+                likedFiles.add(p.entry.file);
               }
               likeBtn.classList.toggle('liked');
               likeBtn.innerHTML = heartSVG(likeBtn.classList.contains('liked'));
@@ -1250,6 +1282,9 @@
         try {
           const liked = await isImageLiked(entry.file);
           if (liked) lightboxLikeBtn.classList.add('liked');
+          // Reconcile the shared set with the authoritative check
+          if (liked) likedFiles.add(entry.file); else likedFiles.delete(entry.file);
+          refreshHearts();
         } catch (error) {
           console.error('Check like status failed:', error);
         }
@@ -1297,11 +1332,14 @@
       try {
         if (isLiked) {
           await removeLike(currentEntry.file);
+          likedFiles.delete(currentEntry.file);
         } else {
           await addLike(currentEntry.file);
+          likedFiles.add(currentEntry.file);
         }
         lightboxLikeBtn.classList.toggle('liked');
         renderLightboxHeart();
+        refreshHearts();
       } catch (error) {
         console.error('Like toggle failed:', error);
       }
