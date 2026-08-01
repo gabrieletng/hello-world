@@ -947,13 +947,27 @@
           if (initiallyLiked) likeBtn.classList.add('liked');
           likeBtn.innerHTML = heartSVG(initiallyLiked);
           likeButtons.push(likeBtn);
+          // Track where the press began so a click that is really the tail of a
+          // pan (pointer moved) doesn't register as a like.
+          let heartDownX = null, heartDownY = null, heartBusy = false;
+          likeBtn.addEventListener('mousedown', e => {
+            heartDownX = e.clientX; heartDownY = e.clientY;
+          });
           likeBtn.addEventListener('click', async e => {
-            e.stopPropagation();
+            e.stopPropagation();   // a heart click must never open the lightbox
+            const moved = heartDownX !== null
+              ? Math.hypot(e.clientX - heartDownX, e.clientY - heartDownY)
+              : Infinity;
+            heartDownX = heartDownY = null;
+            // Only a deliberate, stationary click likes — not the end of a pan,
+            // not a click used to stop coasting momentum, not a rapid re-fire.
+            if (moved > CLICK_SLOP || didDrag || arrestingCoast || heartBusy) return;
             const user = getCurrentUser();
             if (!user) {
               authSignInBtn.click();
               return;
             }
+            heartBusy = true;
             const isLiked = likeBtn.classList.contains('liked');
             try {
               if (isLiked) {
@@ -967,6 +981,8 @@
               likeBtn.innerHTML = heartSVG(likeBtn.classList.contains('liked'));
             } catch (error) {
               console.error('Like toggle failed:', error);
+            } finally {
+              heartBusy = false;
             }
           });
           item.appendChild(likeBtn);
@@ -1023,6 +1039,10 @@
     const FLICK_VEL  = 200;   // px/s — only flicks trigger early coast
 
     let dragging = false, didDrag = false;
+    // A press that travels beyond this many px is a pan, not a click — used to
+    // stop the tail of a pan (or a coast-arresting click) from toggling a like.
+    const CLICK_SLOP = 8;
+    let arrestingCoast = false;  // true when the current press exists to halt momentum
     let dragStartX, dragStartY, panStartX, panStartY;
     let velX = 0, velY = 0, prevX, prevY, prevT;
     let coastRaf = null;
@@ -1059,6 +1079,7 @@
     }
 
     stage.addEventListener('mousedown', e => {
+      arrestingCoast = !!coastRaf;   // this press is stopping momentum, not liking
       stopCoast();
       clearTimeout(dragIdleTimer); dragIdleTimer = null;
       earlyCoasted = false;
