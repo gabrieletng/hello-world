@@ -2,7 +2,7 @@
 
 Live: https://gabrieletng.github.io/hello-world/
 
-A photography collection website. A single homepage acts as a doorway into the full collection — a zoomable, pannable canvas of ~850 images. Signed-in visitors can like images, leave notes, and share individual pieces. Every image has its own URL with a proper link-preview. Behaviour is tracked end-to-end via PostHog, Microsoft Clarity, and a Discord webhook.
+A photography collection website. A single homepage acts as a doorway into the full collection — a zoomable, pannable canvas of ~850 images. Signed-in visitors can like images, leave notes, and share individual pieces. Every image has its own URL with a proper link-preview. Behaviour tracking (PostHog, Microsoft Clarity, Discord webhook) is wired but currently switched off — see Analytics.
 
 ---
 
@@ -110,7 +110,15 @@ Wired through `js/analytics.js`, which is the single call site for `track(event,
 
 Events captured but not webhooked: `lens_search` (Google Lens button click), plus the standard PostHog pageview / session events.
 
-All three snippets sit in the `<head>` of every HTML page. When regenerating pages, re-run `scripts/install_posthog.py` and `scripts/install_clarity.py` to inject them.
+### Currently OFF — no cookie banner
+
+The PostHog and Clarity `<head>` snippets have been **stripped** (`scripts/uninstall_tracking.py`). With no third-party scripts loading, no cookies are set, so the site needs no cookie banner. The profile sign-in (Firebase Auth) keeps working — its session lives in first-party IndexedDB, which is strictly-necessary storage exempt from consent.
+
+The wrapper stays wired in: `js/analytics.js` and its `track()`/`identify()`/`reset()` calls in `js/firebase.js` remain, but silently no-op because they guard on `window.posthog` (now absent). Nothing to rewire.
+
+**Toggle:**
+- **Off:** `python3 scripts/uninstall_tracking.py`
+- **On:** `python3 scripts/install_posthog.py && python3 scripts/install_clarity.py` (idempotent — re-injects into every page's `<head>`). Once on, add a cookie banner before shipping to EU visitors.
 
 ---
 
