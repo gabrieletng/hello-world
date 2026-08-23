@@ -20,7 +20,6 @@ A photography collection website. A single homepage acts as a doorway into the f
 │   ├── og-homepage.jpg     ← link-preview image for the homepage
 │   └── og-collection.jpg   ← link-preview image for the collection (grid)
 ├── manifest.json           ← source of truth: { file, title, date, width, height, type } per item
-├── .ethos-manifest.json    ← tracks which images/ files were created by sync-ethos
 ├── js/
 │   ├── marquee.js          ← homepage marquee engine (drag, inertia, parallax)
 │   ├── firebase.js         ← auth + Firestore (likes, notes, profile queries)
@@ -28,7 +27,6 @@ A photography collection website. A single homepage acts as a doorway into the f
 ├── sync.sh                 ← everyday flow: rebuild derived assets + manifest + share pages, commit, push
 ├── scripts/
 │   ├── sync-assets.py          ← everyday: raw→webp, backfill/prune thumbs + og (run by sync.sh)
-│   ├── sync-ethos.py           ← LEGACY one-time import from ~/Claude/ethos/ (not run by sync.sh)
 │   ├── optimize.py / .sh       ← manual: convert arbitrary images to WebP
 │   ├── make-thumbnails.py      ← standalone thumb (re)generator; sync-assets.py covers the daily case
 │   ├── update-manifest.py      ← rebuilds manifest.json from images/
@@ -163,13 +161,9 @@ lowercase and hyphen-separated (the converter sanitizes raw drops for you).
 `.github/workflows/sync-images.yml` also rebuilds `manifest.json` server-side as
 a safety net on every push to `images/`.
 
-### Legacy: the ethos bootstrap (not part of the everyday flow)
-The `images/` folder was originally *populated* from an external media library at
-`~/Claude/ethos/` by `scripts/sync-ethos.py` (compress → WebP + thumb + og), with
-`.ethos-manifest.json` recording what it created. That was a one-time import and
-is **not** run by `sync.sh`. Only invoke `sync-ethos.py` by hand if you
-deliberately want to re-import from that library — note it would regenerate any
-images you've since deleted directly, if their source still exists in `ethos/`.
+`images/` is the single source of truth — there is no separate source library.
+The webp files are 1600px/quality-82 copies; keep your full-res originals
+somewhere outside this repo if you want them.
 
 ### Storage
 - In-repo while size stays under the GitHub soft limit. Migrating to a CDN means updating the file-path prefix in `manifest.json`; everything else is unchanged.

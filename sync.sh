@@ -11,9 +11,7 @@
 #   3. update-share-pages.py add/remove explore/share/*.html
 #   4. commit + push -> GitHub Pages redeploys references.gabriele-tangerini.com
 #
-# This does NOT use sync-ethos.py. That script is the one-time bootstrap that
-# imported an external "ethos" media library; it's not part of the day-to-day
-# loop and would regenerate images you deleted. Only run it deliberately, by hand.
+# images/ is the single source of truth — everything else is derived from it.
 set -euo pipefail
 cd "$(dirname "$0")"
 

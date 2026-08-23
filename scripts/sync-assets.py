@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Reconcile the images/ folder with its derived assets — no ethos source needed.
+Reconcile the images/ folder with its derived assets. images/ is the single
+source of truth for the collection.
 
 This is the script behind the everyday workflow: you add or remove files in
 images/ directly, then run ./sync.sh. For every still image it makes sure the
@@ -18,7 +19,7 @@ What this script does:
   3. Prune thumbnails / OG JPEGs whose source .webp no longer exists.
 
 It does NOT touch:
-  - videos (.mp4) or their posters — those still come from sync-ethos.py
+  - videos (.mp4) or their posters — those need ffmpeg; add them by hand
   - images/og-homepage.jpg and images/og-collection.jpg (site-level OG assets)
   - manifest.json / share pages — update-manifest.py and update-share-pages.py
     handle those, and sync.sh runs them right after this.
