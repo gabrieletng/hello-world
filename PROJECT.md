@@ -25,11 +25,12 @@ A photography collection website. A single homepage acts as a doorway into the f
 │   ├── marquee.js          ← homepage marquee engine (drag, inertia, parallax)
 │   ├── firebase.js         ← auth + Firestore (likes, notes, profile queries)
 │   └── analytics.js        ← PostHog wrapper + Discord owner webhook
-├── sync.sh                 ← ethos → images/ + manifest + share pages + commit + push
+├── sync.sh                 ← everyday flow: rebuild derived assets + manifest + share pages, commit, push
 ├── scripts/
-│   ├── sync-ethos.py           ← compresses new ethos images, removes orphans
+│   ├── sync-assets.py          ← everyday: raw→webp, backfill/prune thumbs + og (run by sync.sh)
+│   ├── sync-ethos.py           ← LEGACY one-time import from ~/Claude/ethos/ (not run by sync.sh)
 │   ├── optimize.py / .sh       ← manual: convert arbitrary images to WebP
-│   ├── make-thumbnails.py      ← generates 600-px thumbs for grid performance
+│   ├── make-thumbnails.py      ← standalone thumb (re)generator; sync-assets.py covers the daily case
 │   ├── update-manifest.py      ← rebuilds manifest.json from images/
 │   ├── update-share-pages.py   ← rebuilds explore/share/*.html from manifest
 │   ├── install_posthog.py      ← injects PostHog snippet into every HTML page
@@ -130,11 +131,6 @@ The wrapper stays wired in: `js/analytics.js` and its `track()`/`identify()`/`re
 - Lowercase, hyphen-separated filenames; no spaces
 - ~900 files, ~260 MB
 
-### Source folder
-- Raw images live in `~/Claude/ethos/`, outside the repo
-- `scripts/sync-ethos.py` compresses new files to WebP and removes orphans from `images/`
-- `.ethos-manifest.json` tracks files created by the sync script; manually added images are never touched
-
 ### `manifest.json`
 ```json
 [
@@ -143,11 +139,37 @@ The wrapper stays wired in: `js/analytics.js` and its `track()`/`identify()`/`re
 ]
 ```
 
-### Adding / removing images
+### Adding / removing images — the everyday flow
+
+This is the recurring operation. Edit the `images/` folder directly — drop new
+files in, delete ones you don't want — then run one command:
+
 ```bash
-cd ~/Claude/hello-world && bash sync.sh
+cd ~/Claude/hello-world && ./sync.sh
 ```
-`sync.sh` runs the ethos sync, rebuilds the manifest, regenerates the share pages, then commits and pushes. `.github/workflows/sync-images.yml` rebuilds the manifest server-side as a safety net whenever `images/` changes.
+
+`sync.sh` is driven entirely by the current contents of `images/`. It:
+1. **`sync-assets.py`** — converts any raw still you dropped in (`.jpg/.png/.tif/…`)
+   to WebP, then backfills the two derived files every image needs
+   (`images/thumbs/<stem>.webp`, `images/og/<stem>.jpg`) and prunes those files
+   for any image you removed.
+2. **`update-manifest.py`** — adds/removes `manifest.json` entries (with `w`/`h`).
+3. **`update-share-pages.py`** — adds/removes `explore/share/*.html`.
+4. Commits everything and pushes to `main` → GitHub Pages redeploys
+   `references.gabriele-tangerini.com` in ~1 min.
+
+You can add or remove any number of files in one go. Filenames should be
+lowercase and hyphen-separated (the converter sanitizes raw drops for you).
+`.github/workflows/sync-images.yml` also rebuilds `manifest.json` server-side as
+a safety net on every push to `images/`.
+
+### Legacy: the ethos bootstrap (not part of the everyday flow)
+The `images/` folder was originally *populated* from an external media library at
+`~/Claude/ethos/` by `scripts/sync-ethos.py` (compress → WebP + thumb + og), with
+`.ethos-manifest.json` recording what it created. That was a one-time import and
+is **not** run by `sync.sh`. Only invoke `sync-ethos.py` by hand if you
+deliberately want to re-import from that library — note it would regenerate any
+images you've since deleted directly, if their source still exists in `ethos/`.
 
 ### Storage
 - In-repo while size stays under the GitHub soft limit. Migrating to a CDN means updating the file-path prefix in `manifest.json`; everything else is unchanged.
